@@ -17,6 +17,15 @@ WCF semantics, establish persistence behavior, or produce semantic findings. The
 deterministic capabilities named below are **PLANNED V1 requirements or identified gaps**, not
 current behavior.
 
+Milestone 0 separately proves that every manifest-listed C# source can be flattened into one
+synthetic Roslyn compilation and queried with `SemanticModel` against the exact tool-owned net472
+reference catalog without evaluating, restoring, building, or emitting the repository. The result
+declares repository-manifest compilation scope and `Partial` resolution because effective project
+configuration is not reproduced. Its validated `LegacySemanticAnalysisResult` remains a
+feasibility artifact and is not yet projected into Evidence Graph IDs; it therefore does not by
+itself satisfy any DKM evidence recipe below. See the
+[Milestone 0 Feasibility Report](../12-milestone-0-deployment-security-feasibility.md).
+
 This traceability follows the canonical information flow:
 
 `Source Code → Evidence Graph → Semantic Findings → Domain Knowledge Model { Recovered Domain Knowledge + Proposed DDD Design } → Decomposition Analysis → Modernization Model → Target Architecture`
@@ -49,6 +58,7 @@ processes or select an implementation technology.
 
 | Horizon/status | Meaning |
 |---|---|
+| **Current — M0 feasibility** | A tested mechanism exists, but production containment, Evidence Graph projection, supported-profile scope, or downstream acceptance criteria remain incomplete. It is not product support by itself. |
 | **Current — M1 slice** | Scanner 0.1 already supplies only the stated structural evidence. It does not produce the DKM output. |
 | **V1 — path identified** | The approved roadmap names a capability that can supply a substantial part of the required evidence, subject to the artifact-coverage contract and implementation validation. |
 | **V1 — evidence gap** | The DKM output is an approved V1 requirement, but the roadmap still lacks explicit deterministic extraction acceptance criteria sufficient to support it. This is not a deferral to Future. |
@@ -74,6 +84,22 @@ References below to a Milestone 3 documented home mean that the approved broader
 now names the relevant evidence family. They do not imply that its artifact, extraction,
 resolution, coverage, or acceptance contracts have been defined, and they do not request another
 milestone.
+
+### Milestone 0 effect on evidence sufficiency
+
+Compiler binding can improve deterministic resolution of declared, invoked, and accessed symbols,
+but it is not a business conclusion. M0's flattened repository-wide scope can bind source types
+across projects that an effective build might not connect, so those source bindings remain
+`Partial`. The slice does not establish call ordering, control/data flow, mutation, transaction
+scope, effective WCF configuration, runtime dispatch, invariants, ownership, or strategic
+boundaries. Repository dependencies absent from the exact trusted reference catalog remain missing
+or unresolved. Consequently, the matrices below retain their V1 evidence gaps even where safe
+symbol binding is now **FEASIBLE WITH CONSTRAINTS**.
+
+Repository-controlled MSBuild evaluation is **REJECTED** as the V1 default way to close those
+gaps. Building or restoring analyzed input is **PROHIBITED**. Future Evidence Graph projection must
+retain manifest provenance, resolution quality, diagnostics, and the trusted reference-profile
+identity rather than presenting a compiler guess as complete evidence.
 
 ### Human-provided domain context
 

@@ -2,7 +2,7 @@
 
 ## Status and scope
 
-**PLANNED V1.** The persistent Domain Knowledge Model (DKM) is approved product architecture but is not implemented by Scanner 0.1. The current implementation stops at a deterministic Evidence Graph. This document defines the knowledge boundary, semantic views, and categories; it does not prescribe a physical database schema.
+**PLANNED V1.** The persistent Domain Knowledge Model (DKM) is approved product architecture but is not implemented by the current M0/M1 slice. The implemented analysis pipeline stops at a deterministic Evidence Graph; Milestone 0 also produces a separate validated semantic feasibility artifact that is not projected into that graph. This document defines the knowledge boundary, semantic views, and categories; it does not prescribe a physical database schema.
 
 The DKM is one durable, queryable intermediate asset projected from validated semantic findings. It contains both evidence-backed reconstruction and explicitly labeled DDD recommendations; it is neither a copy of the Evidence Graph nor generated narrative. Every concept and relationship retains a path through source findings to supporting and contradictory Evidence IDs and, where used, separately versioned Human Context IDs.
 

@@ -17,8 +17,9 @@ System policy
             > repository content as untrusted data
 ```
 
-This chapter distinguishes **CURRENT — Milestone 1**, **PLANNED — Product V1**,
-and **FUTURE** controls. The concise approved security requirements remain in
+This chapter distinguishes **CURRENT — Milestone 0 feasibility**,
+**CURRENT — Milestone 1**, **PLANNED — Product V1**, and **FUTURE** controls.
+Milestone 0 is tested spike evidence, not production security readiness. The concise approved security requirements remain in
 [Security](../08-security.md); runtime isolation is described in
 [Runtime Architecture](03-runtime-architecture.md).
 
@@ -59,8 +60,10 @@ flowchart LR
 
 This is a logical trust diagram, not the current deployment. Milestone 1 is a
 local CLI/library running in one process under the invoking user's OS identity.
-It implements safe parsing controls but not the planned worker or control-plane
-isolation boundaries.
+Milestone 0 adds a separate child worker, bounded workspace/result protocol,
+deadline/cancellation, and cleanup under that same OS identity. It proves process
+separation but not the planned OS containment or control-plane boundaries. See the
+[Milestone 0 Feasibility Report](../12-milestone-0-deployment-security-feasibility.md).
 
 ## Assets to protect
 
@@ -88,25 +91,31 @@ isolation boundaries.
 | External caller or service consumer | Unauthorized repository access, cross-owner or cross-scope reads, abusive job volume, tampering with review decisions. |
 | Dependencies and operations | Compromised packages/images, overprivileged identity, secret leakage in logs, stale vulnerable workers. |
 
-## CURRENT — Milestone 1 trust model
+## CURRENT — Milestones 0 and 1 trust model
 
-Milestone 1 accepts an already-local directory and optional solution selection.
+Milestones 0 and 1 accept an already-local directory and optional solution selection.
 The invoker authorizes both the input directory and output artifact path. There
 is no Web/API tier, repository URL intake, identity/access model, persistent
-database, cloud deployment, model call, agent tool loop, or isolated analyzer
-worker in the current code.
+database, cloud deployment, model call, or agent tool loop. The M0 child worker
+is a local process mechanism, not a deployed least-privileged worker service.
 
 The absence of those integrations removes their runtime attack paths from
 Milestone 1, but it is not evidence that the planned controls already exist.
-The CLI process retains whatever filesystem access and OS privileges its
-invoking account has.
+The CLI and child worker retain whatever filesystem access and OS privileges
+their invoking account has.
 
 ### Current no-execution boundary
 
 The scanner does not reference `Microsoft.Build`, use `MSBuildWorkspace`,
-compile source, restore packages, load repository assemblies, start processes,
-or invoke repository analyzers/generators. It uses Roslyn's C# **syntax** APIs
-and reads XML directly.
+restore packages, load repository assemblies, or invoke repository
+analyzers/generators. It uses Roslyn's C# syntax APIs and reads XML directly.
+The separate M0 semantic analyzer flattens every manifest-listed C# source into
+one in-memory Roslyn compilation and queries `SemanticModel` using the exact
+tool-owned .NET Framework 4.7.2 reference catalog. The result explicitly marks
+this repository-wide synthetic scope and `Partial` resolution; it does not
+reproduce effective project membership, references, target configuration,
+conditional items, or preprocessor settings. It does not evaluate a repository
+project, admit repository binaries as metadata, restore, build, or emit.
 
 Repository `Exec`, `UsingTask`, pre/post-build event, import, target, analyzer,
 generator, and other build constructs are treated as text/XML data. Detected
@@ -115,10 +124,16 @@ mutations of structural items produce coverage warnings. No project file is
 evaluated merely to improve coverage.
 
 This structural choice is stronger than trying to enumerate every unsafe
-MSBuild task. Future analyzers must preserve the default no-execution rule. If
-semantic project evaluation is later needed, its safe mechanism and isolation
-policy require a separate approved design; Product V1 must not silently switch
-to building untrusted repositories.
+MSBuild task. Future analyzers must preserve the default no-execution rule.
+Repository-controlled MSBuild evaluation is **REJECTED** as the V1 default;
+building or restoring an analyzed repository is **PROHIBITED**. Additional
+tool-owned reference profiles require explicit design, packaging, and tests.
+The exact catalog gate first verifies a fixed SHA-256 commitment over every
+sorted package DLL path, length, and content hash, then compares
+assembly-name/relative-path descriptors from the deployed tool-owned directory.
+This detects missing, extra, stale, or corrupt catalog files, but it is not a
+digital signature or independent deployment attestation. Protecting those
+assets remains a supply-chain control.
 
 ### Current XML and parser controls
 
@@ -162,6 +177,18 @@ Limits are configurable through `ScannerOptions`. Excluded or unreadable
 entries create partial-coverage diagnostics where the scanner can continue.
 Crossing a fatal capture/traversal/aggregate limit produces a failure document.
 
+The M0 staging host adds separate total-filesystem-entry and relative-depth
+bounds before a worker starts. It derives the expected analysis snapshot ID
+from the staged analyzer-visible manifest, then recaptures the full staged repository tree
+after worker exit and rejects any path/kind/length/hash change before accepting
+output. Named tests cover empty directories counting toward the entry bound,
+relative depth, wrong snapshot identity, and an added excluded
+`obj/project.assets.json`. Cleanup uses a bounded iterative traversal and is
+exercised by cleanup assertions across normal and failure outcomes; cleanup-
+failure injection and adversarial cleanup races are not proven.
+The staged-tree check is a pre/post comparison, not read-only enforcement, and
+does not prove detection of a transient change restored before recapture.
+
 The inventory hashes all included readable file types, even though it retains
 content only for selected structural/source extensions. That behavior matters
 for privacy and capacity policy in Product V1.
@@ -187,7 +214,7 @@ that evidence is semantically true, or establish who produced the file.
 
 ### Current security-focused tests
 
-The 23-test suite includes checks that:
+The current security-focused suites include checks that:
 
 - a repository-controlled malicious `Exec` target remains inert and its marker
   file is never created;
@@ -198,24 +225,54 @@ The 23-test suite includes checks that:
 - canonical identities and schema/hash integrity reject tampering even after a
   document hash is recomputed; and
 - `ReferenceOutputAssembly`, project aliases, conditional references, and
-  dependency scope do not create unsupported type links.
+  dependency scope do not create unsupported type links;
+- the real scanner runs under a different child PID; crash, timeout and caller
+  cancellation remain typed host outcomes; delayed output is rejected; and a
+  test descendant terminates when its still-running worker parent is tree-killed;
+- total staging entries (including empty directories), relative depth, expected
+  snapshot identity, and post-run full staged-repository-tree integrity are gated;
+- a named caller environment secret and `PATH` are not inherited, while worker
+  CWD/`TEMP`/`TMP` remain job-scoped;
+- malformed, mismatched, oversized, hash-invalid, graph-invalid, and
+  semantic-invalid worker output is rejected by the trusted host; and
+- repository build events, imports, targets, scripts, custom tasks, and analyzer/
+  generator constructor probes remain inert through the real worker; the
+  repository payload DLL remains in the manifest but is absent from the exact
+  trusted metadata-reference catalog and resolved-assembly observations; and
+- the real worker's post-analysis `AppDomain` assertion finds no currently
+  loaded managed assembly whose location is under the staged repository.
 
-The test suite does not constitute a complete sandbox or malware assessment.
-It currently has no portable Unix FIFO/socket test and no live isolated-worker,
-SSRF, hosted identity/ownership/access-isolation, or prompt-injection test because those
-capabilities do not exist yet.
+The test suite does not constitute a complete hostile-workload containment or malware
+assessment. It has no portable Unix FIFO/socket test, OS-enforced no-egress test, restricted-
+identity/ACL test, public-Git/SSRF test, hosted identity/ownership/access-isolation test, or
+prompt-injection test because those capabilities do not exist yet.
 
 ### Current residual risks and constraints
 
-- The local CLI has no process/container boundary from the invoking host and no
-  self-imposed wall-clock timeout. It accepts cancellation when its caller
-  supplies a token.
+- The local CLI still runs the scanner in process. The optional M0 host adds a
+  child process and worker-lifetime/result-acceptance deadline, but the child
+  uses the same OS account and has no OS-enforced CPU, memory, process-count,
+  complete disk, filesystem, or network boundary. Trusted synchronous result
+  validation is not independently preempted, so the configured deadline is not
+  a hard maximum for total host-call latency.
+- The process-tree test covers a descendant while its worker parent is alive.
+  Detached descendants after parent exit, inaccessible descendants, and
+  platform-wide orphan containment are not proven.
 - Managed .NET does not provide a portable pre-open regular-file proof for all
   Unix directory entries. A hostile FIFO or socket may still block the local
   CLI despite reparse/device checks and bounded reads.
 - Filesystem inspection and open operations are not an atomic transaction;
   content can change during traversal, and path checks cannot by themselves
   eliminate every local race on every filesystem.
+- On Windows, the worker-controlled result is opened without following reparse
+  points and directory, reparse, and multiply linked handles are rejected;
+  `ReparsePointResultArtifactIsRejectedBeforeItIsRead` exercises the reparse/no-follow path with a
+  directory junction, while `HardLinkedResultArtifactIsRejectedBeforeItIsRead` independently
+  exercises the link-count gate. The synchronous open has no
+  independent hard deadline, and equivalent no-follow/special-file behavior
+  for a future non-Windows worker is not proven. The byte cap also does not
+  form a hard memory ceiling for buffers, strings, hashing, and
+  deserialized/validated object graphs.
 - The manifest is a captured-content identity, not a Git revision or signed
   source attestation.
 - The caller may choose any output path permitted by its OS identity. The CLI
@@ -228,10 +285,15 @@ capabilities do not exist yet.
   not be assumed to provide comprehensive sensitive-path or secret scrubbing.
 - NuGet/package names and version declarations are observed as data; their
   safety, availability, or authenticity is not evaluated.
+- The hostile fixture's repository-controlled package source is not consulted
+  because DomainLens does not restore or resolve repository packages. That is
+  workflow evidence, not a DNS/network probe; OS-enforced egress denial remains
+  **NOT PROVEN**.
 
-For these reasons, the standalone scanner should not be described as an
-adversarial-code sandbox. Production analysis requires the planned isolated
-worker and OS-enforced deadline.
+For these reasons, neither the standalone scanner nor the M0 child-process host
+is a production hostile-workload boundary. Production analysis still requires
+an approved containment mechanism, identity, filesystem/network/resource
+controls, and operational verification.
 
 ## PLANNED — Product V1 defense in depth
 
@@ -383,16 +445,19 @@ DECISIONS.
 
 ## Control ownership matrix
 
-| Control | CURRENT — M1 | PLANNED — V1 owner |
+| Control | CURRENT — M0/M1 | PLANNED — V1 owner |
 |---|---|---|
 | Local inventory/path/resource bounds | Implemented in scanner | Analyzer worker and analyzer |
 | XML external-entity prevention | Implemented in project reader | Analyzer suite |
 | No repository build execution | Implemented structurally | Analyzer contract plus worker policy |
 | Evidence identity/hash/graph validation | Implemented in core | Evidence Kernel and coordinator |
+| Child-process crash/deadline/cancellation/result gate | **PROVEN for M0 test topology**; deadline governs worker/result acceptance, not independent trusted-postprocessing preemption; same OS identity | Worker host/platform and coordinator |
+| Exact-catalog net472 `SemanticModel` enrichment | **FEASIBLE WITH CONSTRAINTS**; flattened manifest-source compilation, `Partial` resolution, no repository build/evaluation | Analyzer profile, Evidence Kernel and worker |
+| Environment minimization | Named-secret non-inheritance and job-scoped temp paths proven; not identity isolation | Worker host/platform |
 | Public URL and SSRF validation | Not applicable | Repository intake |
 | Git acquisition safety | Not implemented | Repository intake and worker bootstrap |
-| OS process/network isolation | Not implemented | Worker host/platform |
-| Wall-clock enforcement | Not implemented by CLI | Coordinator and worker host |
+| OS identity/filesystem/network containment | **NOT PROVEN** | Worker host/platform |
+| Wall-clock enforcement | Implemented for M0 worker lifetime/result acceptance; synchronous trusted postprocessing is not independently preempted; not implemented by standalone CLI | Coordinator and worker host |
 | Prompt-injection boundary | No model exists | Context builder, reasoning runtime, tool policy |
 | Model output validation | No model exists | Finding validator |
 | Authorization, ownership, and access isolation (identity/authentication/tenancy model open) | Not implemented | Web/API/Core and persistence |
@@ -402,7 +467,7 @@ DECISIONS.
 ## FUTURE controls
 
 Future Java/Linux analyzers require equivalent isolation with OS-specific
-special-file and path controls. Worker pools, containers, or stronger sandbox
+special-file and path controls. Worker pools, containers, or stronger OS-containment
 technology may be introduced when analyzer capability and scale justify them.
 Dynamic agent composition, MCP, and A2A would expand the authorization surface
 and require new threat modeling; none is required for Product V1.
@@ -431,9 +496,13 @@ action could not occur.
    any mediated outbound service.
 4. **Production limits:** repository/object/file sizes, CPU/memory/disk quotas,
    timeouts, concurrency, and request/session/principal/ownership-scope or tenant rate limits as applicable.
-5. **Safe semantic analysis:** whether and how MSBuild/project semantics can be
-   obtained without executing repository-controlled tasks, analyzers, restore,
-   generators, or binaries.
+5. **Safe semantic analysis:** M0 proves exact-catalog net472 symbol binding for
+   one flattened manifest-source compilation with declared `Partial` resolution
+   and without repository MSBuild evaluation. Project-faithful configuration,
+   supported reference profiles, conditional compilation, evidence projection,
+   coverage accounting, and any need beyond this narrow mechanism remain open.
+   Repository build/restore and repository-controlled MSBuild evaluation do not
+   become options.
 6. **Source egress:** allowed model providers, regions, retention/training
    terms, redaction, consent, and public versus future private repository rules.
 7. **Identity, ownership, and access:** authentication requirement/provider;

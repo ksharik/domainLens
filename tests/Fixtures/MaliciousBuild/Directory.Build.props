@@ -1,0 +1,7 @@
+<Project>
+  <PropertyGroup>
+    <!-- Repository-local MSBuild configuration must not influence DomainLens. -->
+    <RepositoryControlledProperty>untrusted-value</RepositoryControlledProperty>
+    <RepositoryControlledMarker>__DOMAINLENS_EXTERNAL_MARKER__</RepositoryControlledMarker>
+  </PropertyGroup>
+</Project>

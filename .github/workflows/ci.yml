@@ -25,8 +25,11 @@ jobs:
       - name: Restore DomainLens
         run: dotnet restore DomainLens.sln
 
+      - name: Verify formatting
+        run: dotnet format DomainLens.sln --verify-no-changes --no-restore
+
       - name: Build DomainLens
         run: dotnet build DomainLens.sln --configuration Release --no-restore
 
       - name: Test DomainLens
-        run: dotnet test DomainLens.sln --configuration Release --no-build --logger "trx;LogFileName=tests.trx"
+        run: dotnet test DomainLens.sln --configuration Release --no-build --no-restore --logger "trx;LogFileName=tests.trx"

@@ -1,0 +1,6 @@
+<Project>
+  <!-- An explicitly imported target is arbitrary repository-controlled code. -->
+  <Target Name="RepositoryControlledImportedPayload" BeforeTargets="Compile">
+    <Exec Command="echo REPOSITORY_IMPORTED_TARGET_EXECUTED &gt; &quot;__DOMAINLENS_EXTERNAL_MARKER__&quot;" />
+  </Target>
+</Project>

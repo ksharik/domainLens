@@ -7,7 +7,10 @@ boundary**. This document assigns logical responsibilities and dependency direct
 component is not automatically a process, service, container, repository project, or Azure
 resource.
 
-- **CURRENT — Milestone 1:** `DomainLens.Core`, `DomainLens.Scanner`, and `DomainLens.Cli` implement the deterministic Repository Structure Scanner 0.1; the test project verifies its contracts.
+- **CURRENT — Milestones 0 and 1:** `DomainLens.Core`, `DomainLens.Scanner`, and
+  `DomainLens.Cli` implement Repository Structure Scanner 0.1. The M0 feasibility projects add a
+  local child-process host/worker and narrow net472 semantic enrichment, without claiming a
+  production containment boundary.
 - **PLANNED — Product V1:** the end-to-end web/API, pipeline, analyzer-worker, reasoning, review, and persistence capabilities described below.
 - **FUTURE:** decomposition/modernization capabilities, additional client channels, richer orchestration, generalized automatic technology discovery and generated Analysis Plans, and analyzer families beyond legacy .NET/WCF.
 
@@ -116,12 +119,16 @@ Analysis Plan.
 | Current project | Implemented responsibility | Boundary relative to planned V1 |
 |---|---|---|
 | `DomainLens.Core` | Language-neutral Evidence Graph records, canonical identities, deterministic JSON normalization/hashing, and graph/provenance validation. | Forms the first implemented part of the planned Evidence Kernel. It contains no Finding Graph or Domain Knowledge Model. |
-| `DomainLens.Scanner` | Safe local inventory, content manifest and snapshot identity, solution/project parsing without MSBuild evaluation, Roslyn syntax extraction, declared relationships, diagnostics, and status. | Supplies the first structural analyzer implementation. It is a library today and is not yet hosted by an isolated worker. |
+| `DomainLens.Scanner` | Safe local inventory, content manifest and snapshot identity, solution/project parsing without MSBuild evaluation, Roslyn syntax extraction, declared relationships, diagnostics, and status. | Supplies the first structural analyzer implementation and is invoked by the M0 child worker; the CLI can still invoke it in process. |
+| `DomainLens.Semantics` | Flattens manifest-verified repository C# into one synthetic compilation against the exact tool-owned net472 catalog, declares `Partial` resolution, and provides deterministic path-free result serialization and validation. | A feasibility result separate from the Evidence Graph; it does not reproduce effective project configuration, evaluate MSBuild, restore/build/emit the repository, or establish full behavioral evidence. |
+| `DomainLens.Analyzer.Host` | Bounded staging, allowlisted child launch, worker-lifetime/result-acceptance deadline and cancellation, process-tree termination for a running worker, strict result correlation/validation, and typed cleanup. | Demonstrates the required process protocol locally. It does not provide least-privileged identity, detached-descendant containment, network denial, trusted-postprocessing preemption, or production resource containment. |
+| `DomainLens.Analyzer.Worker` | Runs the scanner and semantic feasibility analyzer inside the child and atomically emits a versioned result envelope. | A trusted executable prototype, not a selected Azure worker service or completed Product V1 analyzer profile. |
 | `DomainLens.Cli` | Local `scan` and artifact-only `inspect` commands, canonical JSON output, exit-code mapping, and evidence display. | A Milestone 1 host and diagnostic surface, not the planned Web UI or Product V1 API. |
 | `DomainLens.Scanner.Tests` | Fixture-backed acceptance, security, determinism, identity, provenance, path-hardening, CLI, and graph-integrity tests. | Establishes current contracts; it is not a runtime component. |
 
 For exact current behavior and limitations, see
-[Repository Structure Scanner 0.1](../11-milestone-1-repository-scanner.md).
+[Repository Structure Scanner 0.1](../11-milestone-1-repository-scanner.md) and the
+[Milestone 0 Feasibility Report](../12-milestone-0-deployment-security-feasibility.md).
 
 ## Planned logical responsibilities
 
@@ -180,12 +187,15 @@ versioned, or operationally mutable.
 
 ## Open decisions
 
-- **OPEN DECISION — module contracts:** the exact projects/packages and public interfaces for planned V1 modules beyond the current three production projects.
+- **OPEN DECISION — module contracts:** the exact projects/packages and public interfaces for the remaining planned V1 modules beyond the current scanner and Milestone 0 feasibility projects.
 - **OPEN DECISION — co-deployment:** which trusted logical modules initially share a host process and what measured operational need would justify separation.
 - **OPEN DECISION — job transport:** how the Coordinator dispatches and resumes isolated analyzer work.
 - **OPEN DECISION — query boundary:** the API/query shape used by Results Explorer across Evidence, Human Context, Finding, Recovered Domain Knowledge, and Proposed DDD Design views while preserving their mandatory distinction.
 - **OPEN DECISION — Human Context contract:** the final name (`Human Context` versus `Domain Assertion`), schema, status/validation vocabulary, conflict policy, and rules for how it may affect Support. Identity fields remain conditional on the approved identity model.
-- **OPEN DECISION — V1 analyzer-job contract:** the exact configured profile/job representation, analyzer versions, bounded qualification result, and unsupported-repository diagnostics for the known .NET/WCF path.
+- **OPEN DECISION — production V1 analyzer-job contract:** M0 proves a local versioned
+  process protocol; the durable configured profile/job representation, analyzer-version policy,
+  authenticated transport, bounded qualification result, replay behavior, and
+  unsupported-repository diagnostics remain open for the known .NET/WCF path.
 - **FUTURE DECISION — generalized discovery and planning:** the technology-observation, automatic analyzer-selection, and generated Analysis Plan contracts are deferred until that future capability is approved.
 
 These open choices must preserve the accepted modular architecture and isolated-worker boundary;

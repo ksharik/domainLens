@@ -3,7 +3,39 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
+
+    <!-- These hooks are hostile repository data. DomainLens must never run them. -->
+    <PreBuildEvent>powershell -NoProfile -NonInteractive -File &quot;$(MSBuildProjectDirectory)\RepositoryControlledScript.ps1&quot; -MarkerPath &quot;__DOMAINLENS_EXTERNAL_MARKER__&quot;</PreBuildEvent>
+    <PostBuildEvent>powershell -NoProfile -NonInteractive -File &quot;$(MSBuildProjectDirectory)\RepositoryControlledScript.ps1&quot; -MarkerPath &quot;__DOMAINLENS_EXTERNAL_MARKER__&quot;</PostBuildEvent>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Restore of analyzed repositories is forbidden; this reference is inert test data. -->
+    <PackageReference Include="Repository.Controlled.Package" Version="9.9.9" />
+
+    <!--
+      The test harness can place the trusted DomainLens.RepositoryPayload output
+      here. DomainLens must not load this repository-declared analyzer/generator.
+    -->
+    <Analyzer Include="RepositoryPayload\DomainLens.RepositoryPayload.dll" />
+  </ItemGroup>
+
+  <!--
+    Inline tasks are arbitrary repository-controlled code. Merely parsing this
+    declaration must not compile, load, or execute it.
+  -->
+  <UsingTask TaskName="RepositoryControlledInlineTask"
+             TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <MarkerPath ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        System.IO.File.WriteAllText(MarkerPath, "REPOSITORY_CONTROLLED_USING_TASK_EXECUTED");
+      ]]></Code>
+    </Task>
+  </UsingTask>
 
   <!--
     This is deliberately hostile repository-controlled build logic. DomainLens
@@ -12,4 +44,12 @@
   <Target Name="RepositoryControlledPayload" BeforeTargets="Build">
     <Exec Command="echo DOMAINLENS_UNSAFE_TARGET_EXECUTED &gt; &quot;$(MSBuildProjectDirectory)\SHOULD_NOT_EXIST.marker&quot;" />
   </Target>
+
+  <Target Name="RepositoryControlledTaskPayload" BeforeTargets="CoreCompile">
+    <RepositoryControlledInlineTask MarkerPath="__DOMAINLENS_EXTERNAL_MARKER__" />
+    <Exec Command="powershell -NoProfile -NonInteractive -File &quot;$(MSBuildProjectDirectory)\RepositoryControlledScript.ps1&quot; -MarkerPath &quot;__DOMAINLENS_EXTERNAL_MARKER__&quot;" />
+  </Target>
+
+  <!-- Explicit repository-local imports are also untrusted data. -->
+  <Import Project="RepositoryControlled.targets" />
 </Project>

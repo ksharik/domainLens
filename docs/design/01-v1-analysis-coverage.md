@@ -11,7 +11,10 @@ ignoring artifacts in which that knowledge may reside.
 This is a target coverage design, not a statement that every row is implemented
 today. The current implementation is the Milestone 1 Repository Structure
 Scanner described in
-[Repository Structure Scanner 0.1](../11-milestone-1-repository-scanner.md).
+[Repository Structure Scanner 0.1](../11-milestone-1-repository-scanner.md), plus the explicitly
+limited compiler-binding spike described in the
+[Milestone 0 Feasibility Report](../12-milestone-0-deployment-security-feasibility.md).
+Milestone 0 evidence does not promote a Planned V1 row to supported unless this matrix says so.
 All entries marked **Planned V1** still require versioned extraction rules,
 fixtures, provenance tests, and coverage diagnostics before they are supported.
 
@@ -45,6 +48,7 @@ service.
 |---|---|
 | Snapshot and inventory | Capture immutable repository bytes, paths, sizes and hashes; classify files without executing them. |
 | Repository/C# structural analyzer | Read safe solution/project metadata and C# syntax; emit declarations and statically resolvable source relationships. |
+| Legacy symbol enrichment | Bind a flattened set of manifest-verified repository C# sources against an explicit, exact tool-owned framework reference catalog without evaluating repository MSBuild or admitting repository binaries/build extensions. M0 proves only the net472 synthetic-compilation feasibility slice with declared `Partial` resolution; project-faithful configuration, graph projection, and broader profiles remain open. |
 | Classic WCF analyzer | Recognize WCF source and configuration constructs and contribute normalized contract, operation, endpoint, binding, behavior and hosting evidence. |
 | Relationship / persistence / behavioral evidence | Extract bounded calls, conditions, validation, mutations, data access, transactions, security checks, external calls and other supported behavioral evidence from C# and configuration patterns. This is one configured V1 capability boundary, not a separate security analyzer or the future standalone database/persistence analyzer family. |
 | Evidence Kernel | Validate identity, provenance, source spans, hashes, resolution quality, graph references and diagnostics before contributions enter the Evidence Graph. |
@@ -55,7 +59,8 @@ service.
 |---|---|---|---|---|---|
 | `.sln` | **V1 Supported** | Current foundation | Solution identity, project membership and solution-relative project paths. | Repository/C# structural analyzer | No build or solution evaluation. Malformed, missing, duplicate or external project paths produce diagnostics. |
 | `.csproj` | **V1 Supported** | Current foundation | Project identity, target-framework literals, assembly/root namespace, literal compile items, project/assembly/package references and declared dependency edges. | Repository/C# structural analyzer | MSBuild properties, imports, conditions, globs, tasks and item transforms are not executed or fully evaluated. Resulting uncertainty must reduce coverage. |
-| `.cs` declarations and syntax-resolvable structure | **V1 Supported** | Current structural foundation | Namespaces, declarations, members, attributes, inheritance/interface declarations and supported source dependencies. | Repository/C# structural analyzer | Source is parsed as untrusted data. External binding, aliases, conditional compilation and generated members may remain partial or unresolved. DDD-like names are not proof of DDD roles. |
+| `.cs` declarations and syntax-resolvable structure | **V1 Supported** | Current structural foundation; M0 compiler-binding feasibility | Namespaces, declarations, members, attributes, inheritance/interface declarations and supported source dependencies. | Repository/C# structural analyzer; legacy symbol enrichment where an approved profile applies | Source is parsed as untrusted data. M0 flattens every manifest-listed C# source into one synthetic compilation and declares source binding `Partial`; project membership/references, conditional compilation, generated members, repository dependencies and unsupported profiles remain incomplete or unresolved. DDD-like names are not proof of DDD roles. |
+| Tool-owned .NET Framework 4.7.2 reference assemblies | **V1 Partial** | M0 feasibility only | An exact versioned catalog of compiler-readable metadata descriptors and a reference-set identity for supported compiler-binding observations. | Legacy symbol enrichment | References come from DomainLens's private `Microsoft.NETFramework.ReferenceAssemblies.net472` 1.0.3 dependency, never the repository. Trusted validation rejects missing, added, path/identity-mismatched, or out-of-catalog resolved assemblies. This does not establish effective project configuration or authorize package restore/build for analyzed input. Additional framework profiles require explicit scope and fixtures. |
 | `.cs` method-body and behavioral evidence | **V1 Partial** | Planned V1; exact extraction contract open | Supported calls, mutations, conditions, validation, exceptions, transactions, security checks, state changes and side effects. | Relationship / persistence / behavioral evidence | V1 must define supported constructs and control/data-flow depth. External code, indirection, reflection and dynamic dispatch may remain partial or unresolved; unsupported behavior must reduce coverage rather than be guessed. |
 | `.props` | **V1 Metadata/Detection Only** | Current file-presence and applicable build-risk diagnostics; broader construct detection planned | Current: inventory/provenance and applicable build-file diagnostics. Planned: safe literal indicators that build-wide configuration may affect projects. | Snapshot and inventory; Repository/C# structural analyzer | Never import or evaluate the file. Properties, conditions, tasks and item mutations can change effective source membership, references or settings, so affected projects require a coverage diagnostic. |
 | `.targets` | **V1 Metadata/Detection Only** | Current file-presence and applicable build-risk diagnostics; broader construct detection planned | Current: inventory/provenance and applicable build-file diagnostics. Planned: detection of target, task, build-event or structural-item mutation constructs. | Snapshot and inventory; Repository/C# structural analyzer | Targets, `UsingTask`, `Exec`, generators and custom tasks remain inert data. Detection does not establish their runtime effect. |
@@ -109,7 +114,7 @@ behavior exists only in database-native artifacts.
 
 | Artifact or concept | V1 treatment | Delivery state | Evidence contribution | Expected deterministic owner | Major limitations and security constraints |
 |---|---|---|---|---|---|
-| Third-party assemblies | **V1 Metadata/Detection Only** | Current reference-name foundation; V1 enrichment unresolved | Declared assembly/package identity, version/public-key metadata when safely present and unresolved external dependency edges. | Repository/C# structural analyzer | Repository binaries are not loaded, executed or decompiled. The trusted reference-assembly policy for safe symbol enrichment is an **Open Decision**. Missing implementation limits calls, inheritance and behavior evidence. |
+| Third-party assemblies | **V1 Metadata/Detection Only** | Current reference-name foundation; repository-binary enrichment unresolved | Declared assembly/package identity, version/public-key metadata when safely present and unresolved external dependency edges. | Repository/C# structural analyzer | Repository binaries are not loaded, executed or decompiled. M0's tool-owned net472 framework references do not authorize repository or arbitrary third-party metadata. Missing implementation limits calls, inheritance and behavior evidence. |
 | Checked-in generated source | **V1 Partial** | Current syntax coverage; planned classification/reconciliation | The same supported C# evidence as other captured `.cs` files plus safe markers indicating generated origin where detectable. | Repository/C# structural analyzer and relevant framework capability | Source generators, custom tools, T4 and service-reference generation are never run. Generated files absent from the snapshot do not exist for analysis; stale/duplicated output requires diagnostics and reconciliation. |
 | Reflection and dynamic dispatch | **V1 Metadata/Detection Only** | Planned V1 detection | Reflection/dynamic API usage, literal type/member names where present and explicit ambiguous or unresolved relationship candidates. | Relationship / persistence / behavioral evidence | V1 must not guess runtime targets from names alone. Runtime values, late binding, proxy interception, expression compilation and container wiring can prevent exact resolution. |
 | Batch and scheduled jobs | **V1 Partial** | Planned V1 | Supported entry-point, timer/scheduler registration, invoked workflow, state/data effects and external dependencies when visible in C# or configuration. | Relationship / persistence / behavioral evidence | The allowlisted frameworks and registration patterns are an **Open Decision**. Operating-system schedules, external orchestrators, dynamic registration and unavailable configuration may be invisible. No job is started. |
@@ -159,9 +164,12 @@ no-execution boundary established by Milestone 1:
   authorization policy before sensitive evidence reaches persistence, logs,
   model context or the UI.
 
-Any future proposal for safe semantic project evaluation or trusted reference
-enrichment requires an explicit threat model and approval. It must not silently
-weaken these constraints.
+M0's approved feasibility mechanism performs compiler binding only over one flattened set of
+captured manifest C# sources and the exact tool-owned net472 catalog, with declared `Partial`
+resolution. Repository-controlled MSBuild evaluation is **REJECTED** as
+the V1 default; building or restoring the analyzed repository is **PROHIBITED**. Any additional
+reference profile or semantic mechanism requires an explicit threat model, trusted packaging,
+coverage contract, and tests and must not silently weaken these constraints.
 
 ## V1 coverage gaps and open decisions
 
@@ -175,8 +183,12 @@ weaken these constraints.
    typed-DataSet and database-schema analysis belongs to a future analyzer
    family. Data ownership, invariants and transaction conclusions must expose
    this gap.
-3. **Safe symbol enrichment:** whether trusted reference assemblies or another
-   non-executing mechanism may improve external type binding is unresolved.
+3. **Safe symbol enrichment:** M0 proves the feasibility of one flattened,
+   repository-manifest C# compilation plus an exact tool-owned net472 catalog,
+   with overall and source-binding resolution explicitly `Partial`. Project-
+   faithful compilation, graph projection, supported framework profiles,
+   conditional compilation, coverage accounting, and handling of unavailable
+   repository/third-party types remain unresolved.
    Loading repository binaries or running restore/build is not an option.
 4. **Effective WCF/configuration resolution:** the approved WCF schema subset
    and handling of inheritance, `configSource`, custom extensions, transforms,
