@@ -4,7 +4,7 @@
 
 **PLANNED V1.** The persistent Domain Knowledge Model (DKM) is approved product architecture but is not implemented by Scanner 0.1. The current implementation stops at a deterministic Evidence Graph. This document defines the knowledge boundary, semantic views, and categories; it does not prescribe a physical database schema.
 
-The DKM is one durable, queryable intermediate asset projected from validated semantic findings. It contains both evidence-backed reconstruction and explicitly labeled DDD recommendations; it is neither a copy of the Evidence Graph nor generated narrative. Every concept and relationship retains a path through source findings to supporting and contradictory evidence.
+The DKM is one durable, queryable intermediate asset projected from validated semantic findings. It contains both evidence-backed reconstruction and explicitly labeled DDD recommendations; it is neither a copy of the Evidence Graph nor generated narrative. Every concept and relationship retains a path through source findings to supporting and contradictory Evidence IDs and, where used, separately versioned Human Context IDs.
 
 ## Source-model neutrality
 
@@ -23,7 +23,9 @@ messages, security policies, dependencies, and coupling.
 ```mermaid
 flowchart LR
     Source["Source code and configuration"] --> Evidence["Evidence Graph<br/>deterministic observations"]
+    HumanContext["Human Context<br/>versioned human-supplied statements"]
     Evidence --> Findings["Finding Graph<br/>inferred and proposed meaning"]
+    HumanContext --> Findings
     Findings --> Gate["Validation and human review"]
     subgraph DKM["Domain Knowledge Model — one canonical asset"]
         direction TB
@@ -60,9 +62,12 @@ proposal when DomainLens recommends a representation that is not present. Claim 
 not vocabulary, determine the view. A finding that combines an as-is claim and a recommendation
 must be split into atomic findings before projection.
 
-Both views retain source Finding IDs, supporting and contradictory Evidence IDs, classification,
-assumptions, confidence/support/coverage, alternatives, review state, producer versions, and
-revision history. Human acceptance changes review state only: Recovered Domain Knowledge remains
+Both views retain source Finding IDs, supporting and contradictory Evidence IDs, separately typed
+Human Context IDs/revisions where used, classification, assumptions, Support, Coverage,
+Completeness, linked Resolution Quality, alternatives, review state, producer versions, and
+revision history. Calibrated Confidence is retained only when the evaluation-readiness and product-
+exposure gate is met; otherwise it is unavailable/not calibrated or omitted by the eventual schema.
+Human acceptance changes review state only: Recovered Domain Knowledge remains
 `Inferred`, and Proposed DDD Design remains `Proposed`.
 
 ### Example
@@ -89,8 +94,38 @@ classification make that difference explicit.
 - Business Capabilities
 - Actors
 - Use Cases
+- Domain Vocabulary / Ubiquitous Language
 - Domains
 - Subdomains classified as Core, Supporting, or Generic
+
+#### Domain Vocabulary / Ubiquitous Language
+
+Domain Vocabulary is a first-class DKM concept that can represent:
+
+- business terms and candidate definitions;
+- synonyms, aliases, abbreviations and acronyms;
+- source usages and evidence locations;
+- usage by business capability, bounded-context candidate or other semantic scope;
+- conflicting and context-specific meanings; and
+- terms whose meaning remains ambiguous or unresolved.
+
+An attributable human explanation of a business term may be supplied as Human Context and linked
+to the vocabulary finding that used it. It is not an Observed definition or Evidence Graph record,
+and its exact revision and provenance remain visible alongside source usages.
+
+Vocabulary follows the same evidence boundary as every semantic concept:
+
+```text
+Observed identifier, text, contract or usage
+    -> Inferred domain term and candidate meaning
+        -> possible bounded-context interpretation or Proposed normalized language
+```
+
+For example, `Account` may mean a login/user account in an identity context, a customer billing
+account in billing, and a financial account in banking. A stable difference in meaning, rules,
+ownership and workflows can support a bounded-context boundary; the repeated word alone cannot
+prove one. Comments and names may guide retrieval, but vocabulary meaning cannot be derived
+deterministically from identifiers alone.
 
 ### Strategic DDD
 
@@ -199,18 +234,34 @@ A logical DKM record needs enough information to remain reviewable and reproduci
 - semantic view (`RecoveredDomainKnowledge` or `ProposedDddDesign`);
 - source Finding IDs and their classification (`Inferred` or `Proposed` for model-produced claims);
 - supporting and contradictory Evidence IDs;
-- support, coverage, confidence, assumptions, alternatives, and known limitations;
+- separate supporting and contradictory Human Context IDs/revisions where used;
+- Support, Coverage, Completeness, assumptions, alternatives, known limitations, and
+  summaries of the linked evidence's deterministic Resolution Quality;
+- calibrated Confidence only after an applicable versioned calibration method and expert-reviewed
+  corpus exist, calibration has been evaluated, and product exposure is approved;
 - validation and human-review state, independent of classification;
 - producer, analyzer/model/skill/prompt versions as applicable;
 - creation, revision, supersession, and DKM-version lineage.
 
-The exact schema, cardinalities, and confidence rubric are **OPEN DECISIONS**. Whatever representation is selected must preserve atomic claims and provenance rather than collapsing several claims into an untraceable paragraph. Validation must enforce `RecoveredDomainKnowledge` with `Inferred` semantic findings and `ProposedDddDesign` with `Proposed` findings; Observed implementation facts remain in the Evidence Graph and are referenced rather than copied into a stronger semantic claim.
+The exact schema, cardinalities, and Confidence rubric are **OPEN DECISIONS**. Whatever representation is selected must preserve atomic claims and the distinction between Evidence and Human Context provenance rather than collapsing several claims into an untraceable paragraph. Validation must enforce `RecoveredDomainKnowledge` with `Inferred` semantic findings and `ProposedDddDesign` with `Proposed` findings; Observed implementation facts remain in the Evidence Graph and are referenced rather than copied into a stronger semantic claim. Human Context remains a separate record type and does not introduce another epistemic classification.
+
+Coverage, Support, Confidence, Completeness and Resolution Quality have distinct meanings defined
+by the [Quality and Evaluation Strategy](../quality/01-evaluation-strategy.md). High Support with
+low Coverage must remain distinguishable from medium Support with high Coverage. Confidence is not
+populated or exposed until its full gate is met; raw model self-confidence and renamed Support are
+never substitutes. A missing finding or missing evidence within the analyzed scope is not evidence
+that a concept does not exist.
 
 ## Projection and revision
 
 Validated findings are candidates for projection into a DKM version. Projection must be deterministic application behavior over validated records, not an unreviewed model side effect. It must retain the semantic-view discriminator and findings that disagree so users can inspect uncertainty rather than receiving a falsely unified answer.
 
 Human review changes a finding's review state and may create a revised or superseding finding. It never changes an `Inferred` claim into `Observed`, changes a `Proposed` claim into `Inferred` or `Observed`, or moves Proposed DDD Design into the recovered view. Absence of evidence is also not evidence that a rule, policy, or concept does not exist.
+
+Human Context is revised independently of review state and findings. A corrected or superseding
+record preserves its predecessor; it does not rewrite the sealed ContextPack, finding, or DKM
+version that cited the earlier revision. Policy may mark dependents stale and initiate new reasoning
+and projection, but the invalidation and conflict rules remain open.
 
 ```mermaid
 stateDiagram-v2
@@ -230,11 +281,11 @@ The exact eligibility policy for unreviewed, rejected, superseded, or contradict
 ## Persistence and presentation
 
 The DKM is one structured, versioned platform asset. Persistence records each item's semantic view,
-classification, and review state. Explorer views, diagrams, Markdown, APIs, and explanations are
+classification, Evidence and Human Context provenance, and review state. Explorer views, diagrams, Markdown, APIs, and explanations are
 projections of it, not its canonical storage format, and must visibly distinguish recovered/as-is
 knowledge from proposed DDD design. A combined presentation may correlate the views but cannot omit
 their labels or imply that an accepted proposal existed in source. Each analysis run references the
-repository snapshot, Evidence Graph, Finding Graph, and DKM version used, enabling later comparison
+repository snapshot, Evidence Graph, Human Context revisions, Finding Graph, and DKM version used, enabling later comparison
 and re-analysis without rewriting historical results.
 
 ## Boundary with decomposition and modernization
@@ -256,10 +307,14 @@ See [Evidence Architecture](05-evidence-architecture.md) for the immutable factu
 ## Open decisions
 
 - Concrete concept/relationship schema, cardinalities, naming/identity rules, and view-discriminator representation.
-- Confidence, support, coverage, and completeness semantics across knowledge categories.
+- Representation, rubrics, aggregation, and calibration for Confidence, Support, Coverage, and Completeness across knowledge categories; Confidence remains unavailable until its readiness and exposure gate is met.
 - Projection eligibility, cross-view relationship, and conflict/reconciliation rules.
 - DKM version lineage and cross-run/cross-snapshot logical identity.
 - Human-review requirements by claim type and consequence.
+- Final `Human Context` versus `Domain Assertion` name, physical schema, status/validation,
+  conflict and supersession semantics, stale-dependent handling, how it may affect Support, and
+  whether it may support a finding without repository evidence. Identity attribution remains
+  conditional on the approved identity model.
 - The later schema for decomposition alternatives and modernization models.
 
 Related decisions: [ADR-003](../adr/003-separate-evidence-graph-from-finding-graph.md), [ADR-005](../adr/005-persist-domain-knowledge-model-as-canonical-intermediate-asset.md), and [ADR-010](../adr/010-separate-decomposition-from-domain-knowledge-reconstruction.md).

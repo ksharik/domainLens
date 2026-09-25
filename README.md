@@ -15,7 +15,11 @@ The analyzed application does not need to use DDD. DomainLens reconstructs exist
 See [Product Overview](docs/01-product-overview.md), the detailed
 [Architecture and Design Baseline](docs/architecture/README.md), the
 [Architecture Decision Records](docs/adr/README.md), and the
-[Roadmap](docs/10-roadmap.md).
+[Roadmap](docs/10-roadmap.md). Product/design detail is captured in the
+[Results Explorer specification](docs/product/01-results-explorer.md),
+[Quality and Evaluation Strategy](docs/quality/01-evaluation-strategy.md),
+[V1 Analysis Coverage](docs/design/01-v1-analysis-coverage.md), and
+[Knowledge-to-Evidence Traceability](docs/design/02-knowledge-evidence-traceability.md).
 
 ## Repository Structure Scanner 0.1
 

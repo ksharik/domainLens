@@ -23,19 +23,25 @@ flowchart LR
     Repo[Repository snapshot]
     Analyzer[Deterministic analyzer]
     EG[(Evidence Graph)]
+    HC[(Human Context revisions)]
     Context[Versioned ContextPack]
     Model[Model reasoning]
     Candidate[Candidate findings]
     Validator[Finding validator]
     FG[(Finding Graph)]
-    Human[Human review]
+    Human[Human participation]
+    Review[Human review decisions]
     DKM[(Domain Knowledge Model)]
 
     Repo --> Analyzer -->|Observed only| EG
     EG --> Context --> Model -->|Inferred or Proposed| Candidate
-    Candidate --> Validator --> FG --> Human --> DKM
+    Human -->|supplied domain statement| HC --> Context
+    Candidate --> Validator --> FG --> Review --> DKM
+    Human -->|accept, reject, or challenge| Review
     EG -. evidence references .-> FG
+    HC -. separate context references .-> FG
     EG -. durable traceability .-> DKM
+    HC -. durable traceability .-> DKM
 ```
 
 These words have precise architectural meanings:
@@ -43,12 +49,12 @@ These words have precise architectural meanings:
 | Classification | Meaning | Who may create it |
 |---|---|---|
 | **Observed** | A deterministic statement tied to captured source/configuration bytes and an analyzer rule. It may be exact, partial, ambiguous, or unresolved. | Deterministic analyzer application code only. |
-| **Inferred** | A semantic interpretation strongly supported by observed evidence, with reasoning, confidence, counterevidence, and limitations. | The reasoning runtime may propose it; validators and humans govern acceptance. |
+| **Inferred** | A semantic interpretation supported under the applicable reasoning policy, with reasoning, counterevidence, and limitations. Deterministic source support and Human Context support are referenced separately. | The reasoning runtime may propose it; validators and humans govern acceptance. Whether Human Context alone may support a finding remains an open policy decision. |
 | **Proposed** | A recommendation or target interpretation that is not claimed to describe the source as fact. | The reasoning runtime or a human may propose it. |
 
 `ResolutionQuality` is not this classification. For example, an unresolved
 declared type reference is still an **Observed** fact about source syntax; it is
-not an AI inference. Conversely, a high-confidence bounded-context candidate is
+not an AI inference. Conversely, a strongly supported bounded-context candidate is
 still **Inferred** or **Proposed**, never Observed.
 
 Milestone 1 implements only the Evidence Graph. Its schema does not yet carry
@@ -62,8 +68,10 @@ An LLM/model response cannot create, update, or relabel an Evidence Graph
 record as Observed. It may cite immutable evidence IDs in a structured finding.
 If a semantic review exposes missing evidence, the coordinator may schedule a
 deterministic analyzer; only that analyzer can add new evidence for a versioned
-snapshot. Human-entered knowledge and clarification also remain distinct from
-source evidence.
+snapshot. Human-entered domain statements used in reasoning are durable, versioned Human Context
+records with their own provenance and identifiers. They remain distinct from source evidence,
+model interpretation, epistemic classification, and human review decisions. The final name
+(`Human Context` versus `Domain Assertion`) and physical schema remain open.
 
 ## CURRENT — Milestone 1 evidence document
 
@@ -224,6 +232,31 @@ The quality vocabulary is:
 Exact does not mean globally or behaviorally complete. An exact syntax
 observation says the supported source construct was read exactly; it does not
 assert runtime behavior, semantic compilation success, or business meaning.
+
+### Coverage is not resolution or evidence
+
+Resolution Quality describes one deterministic observation or relationship. Coverage describes
+how much of a declared artifact/evidence space an analyzer could examine. A run can therefore
+contain exact observations while having low coverage, or broad coverage containing ambiguous and
+unresolved relationships.
+
+Coverage measurements, attempted-unit counts and quality metrics describe DomainLens analysis;
+they are not Observed facts about the analyzed business and must not be inserted into the Evidence
+Graph as domain evidence. Analyzer diagnostics and versioned analysis metadata must retain enough
+information to explain:
+
+- the declared scope and analysis dimension;
+- eligible, attempted, analyzed, excluded, unsupported and failed units;
+- the measurement basis and analyzer/rule versions;
+- unknown or unavailable denominator material; and
+- the effect of omissions on downstream reasoning.
+
+Artifact coverage, parser/analyzer coverage, semantic-finding Support, calibrated Confidence when
+available,
+analysis Completeness and Resolution Quality remain separate dimensions. Their conceptual
+definitions and evaluation rules are specified in the
+[Quality and Evaluation Strategy](../quality/01-evaluation-strategy.md). Physical records and
+numeric thresholds remain **OPEN DECISIONS**.
 
 ### Evidence nodes
 
@@ -410,14 +443,19 @@ A structured finding should minimally retain:
 - `Inferred` or `Proposed` classification;
 - a typed concept and structured relationships;
 - supporting evidence IDs and counterevidence IDs;
-- reasoning summary, assumptions, alternatives, confidence, support, coverage, and stated limitations;
+- separate supporting and contradictory Human Context IDs/revisions where used;
+- reasoning summary, assumptions, alternatives, Support, Coverage, Completeness, linked deterministic Resolution Quality summaries, and stated limitations;
+- calibrated Confidence only when its applicable versioned calibration method and expert-reviewed corpus exist, calibration has been evaluated, and product exposure is approved; otherwise Confidence is unavailable/not calibrated or omitted by the eventual schema;
 - unresolved questions;
 - ContextPack identity;
 - analyzer, model, prompt, and skill versions; and
 - validation and human-review state.
 
-The exact schema remains an OPEN DECISION. It must support multiple competing
-interpretations without overwriting evidence or a previous finding revision.
+The exact schema remains an OPEN DECISION. Validation must reject Evidence or Human Context
+references that are unknown, use the wrong record type, or were absent from the sealed ContextPack.
+It must support multiple competing interpretations without overwriting evidence, Human Context,
+or a previous finding revision. Superseding Human Context may lead to a new finding but cannot
+rewrite the exact revisions used by an earlier pack or finding.
 Accepting a finding into the Domain Knowledge Model records a decision; it does
 not change its origin classification or semantic view. In particular, accepted
 Proposed DDD Design remains `Proposed` and cannot appear as recovered/as-is
@@ -463,11 +501,17 @@ plugin system.
 8. **Cross-analyzer reconciliation:** how equivalent concepts and conflicting
    observations from different analyzer families are represented without
    destructive merging.
-9. **Finding Graph schema:** classification, confidence scale, contradiction
-   model, revision identity, and acceptance workflow.
+9. **Finding Graph schema:** classification, conditional calibrated-Confidence representation,
+   contradiction model, separate Evidence/Human Context references, revision identity, and
+   acceptance workflow. Raw model self-confidence cannot populate Confidence, and Support cannot
+   be relabeled as Confidence.
 10. **Evidence correction:** how an analyzer defect supersedes an earlier graph
     while preserving audit history and links from existing findings.
 11. **Large-graph partitioning:** storage and retrieval boundaries that retain
     canonical provenance without forcing whole-document loading.
 12. **Sensitive evidence:** redaction and authorization rules for secrets,
     personal data, and source excerpts before persistence or model egress.
+13. **Human Context contract:** final name, physical schema, validation/status vocabulary,
+    conflicting statements, revision/supersession and stale-dependent handling, retention/export,
+    and how it may affect Support. Actor/session/principal attribution remains conditional on the
+    eventually approved identity model.

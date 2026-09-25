@@ -189,7 +189,7 @@ flowchart TD
     Unsupported[Unsupported-repository diagnostics]
     Structural[Structural analyzers]
     WCF[WCF analyzer]
-    Relations[Relationship and persistence analyzers]
+    Relations[Relationship / persistence / behavioral evidence]
     Evidence[Validated Evidence Graph]
     Context[ContextPack construction]
     DiscoveryReasoning[Recovered domain-knowledge reasoning]
@@ -198,12 +198,13 @@ flowchart TD
     DesignValidation[Proposed-DDD finding validation]
     Human{Clarification or challenge needed?}
     Review[Human review and clarification]
+    HumanContext[Versioned Human Context record]
     subgraph Knowledge["Versioned Domain Knowledge Model"]
         direction TB
         RecoveredKnowledge[Recovered Domain Knowledge]
         ProposedDesign[Proposed DDD Design]
     end
-    Results[Persistent results and result explorer]
+    Results[Persistent results and Results Explorer]
 
     User --> Intake --> Snapshot --> Qualification
     Qualification -->|unsupported| Unsupported
@@ -218,7 +219,9 @@ flowchart TD
     Relations --> Evidence
     Evidence --> Context --> DiscoveryReasoning --> RecoveryValidation
     RecoveryValidation -->|valid recovered findings| DDD --> DesignValidation --> Human
-    Human -->|yes| Review --> Context
+    Human -->|yes| Review
+    Review -->|domain clarification| HumanContext --> Context
+    Review -->|challenge or re-analysis request| Context
     Human -->|"no / Inferred"| RecoveredKnowledge --> Results
     Human -->|"no / Proposed"| ProposedDesign --> Results
 ```
@@ -233,34 +236,47 @@ flowchart TD
   the known legacy C#/.NET Framework/WCF path and produce explicit unsupported or partial-coverage
   diagnostics. It does not inventory arbitrary technologies, choose among analyzer families, or
   generate an Analysis Plan.
-- **Configured analyzer invocation** uses the trusted, approved V1 structural, WCF, relationship,
-  and persistence capabilities. Their identities, versions, ordering, and bounded configuration
-  are retained with the run so retry or resume does not silently change tools.
+- **Configured analyzer invocation** uses the trusted, approved V1 structural and WCF analyzers plus
+  the Relationship / persistence / behavioral evidence capability, including supported security
+  evidence. Their identities, versions,
+  ordering, and bounded configuration are retained with the run so retry or resume does not
+  silently change tools.
 - **Structural and framework analysis** extend the Evidence Graph. The first
   workload adds legacy .NET Framework and WCF analysis; subsequent analyzers
   must use the same evidence/provenance contract.
+- **Coverage accounting** records the declared scope, analyzed and excluded artifacts, unsupported
+  constructs, resolution-quality distribution, diagnostics, and known limitations for every
+  analyzer stage. Coverage metadata describes the analysis and is not source evidence.
 - **Context construction** selects a bounded, versioned `ContextPack` through
-  graph traversal and lexical retrieval. Repository content remains quoted
-  data. Unrestricted repository access is not given to the model, and V1 does
-  not require a vector database.
+  graph traversal and lexical retrieval. It keeps deterministic evidence, prior findings,
+  counterevidence, limitations, and specific Human Context revisions as separately typed inputs.
+  Repository content remains quoted data. Unrestricted repository access is not given to the
+  model, and V1 does not require a vector database.
 - **Recovered domain discovery** produces `Inferred` findings about the business and existing
   system from supported implementation evidence. It does not require DDD constructs or names, and
   it may recover an existing DDD pattern only when behavior and relationships support that claim.
 - **Proposed DDD design** produces `Proposed` findings that recommend how recovered concepts could
   be represented with DDD. A proposal never asserts that the corresponding construct already
   exists in the source. Both reasoning activities produce semantic findings, never Evidence Graph
-  records, and retain supporting/counterevidence, assumptions, alternatives, confidence/support,
-  and unresolved questions.
+  records, and retain separate Evidence and Human Context references, assumptions, alternatives,
+  Support, Coverage, Completeness, linked Resolution Quality, and unresolved questions. Calibrated
+  Confidence is optional and may be populated only after the evaluation-readiness and product-
+  exposure gate is met; raw model self-confidence and renamed Support are prohibited.
 - **Finding validation** follows each reasoning activity and applies schema validation,
   evidence-reference checks, semantic-view/classification rules, policy checks, and deterministic
   consistency rules before a finding can enter review or be supplied to downstream reasoning.
-- **Human review** may accept, reject, challenge, provide clarification, or
-  request re-analysis. A challenge creates a new reasoning attempt and
-  revision; it does not mutate the historical evidence snapshot.
-- **Knowledge materialization** projects validated findings and human decisions into one versioned
-  Domain Knowledge Model with separate Recovered Domain Knowledge and Proposed DDD Design views.
-  Every projected record retains its source findings, evidence, semantic view, classification,
-  assumptions, support/confidence, alternatives, review state, and revision history. Generated
+- **Human interaction** may accept, reject, challenge, provide domain clarification, or request
+  re-analysis. A clarification used by reasoning becomes a durable, versioned Human Context record,
+  separate from review-state actions and source evidence. A challenge creates a new reasoning
+  attempt and revision; neither operation mutates the historical evidence snapshot, prior context
+  revision, or earlier sealed ContextPack.
+- **Knowledge materialization** projects validated findings into one versioned Domain Knowledge
+  Model with separate Recovered Domain Knowledge and Proposed DDD Design views. Every projected
+  record retains its source findings, separate Evidence and Human Context references where used,
+  semantic view, classification, assumptions, Support, Coverage, Completeness, linked Resolution
+  Quality, alternatives, review state, and revision history. It includes calibrated Confidence only
+  when available under the approved gate. Human review decisions govern state; they are not domain
+  content projected into the model. Generated
   Markdown is a view, not its canonical persistence format.
 
 ## PLANNED — orchestration state and resumability
@@ -280,7 +296,7 @@ stateDiagram-v2
     BuildingContext --> Reasoning
     Reasoning --> ValidatingFindings
     ValidatingFindings --> AwaitingHumanInput: clarification required
-    AwaitingHumanInput --> BuildingContext: answer or challenge recorded
+    AwaitingHumanInput --> BuildingContext: Human Context revision or challenge recorded
     ValidatingFindings --> MaterializingKnowledge: findings accepted
     MaterializingKnowledge --> Completed
 
@@ -313,8 +329,8 @@ design remains `Proposed`, and an accepted `Inferred` recovery never becomes `Ob
 Resumability requires durable stage inputs and outputs rather than replaying an
 opaque agent conversation. At a minimum, a future checkpoint must identify the
 repository snapshot, configured V1 analyzer profile/job and analyzer versions, bounded
-configuration, evidence schema and hash, ContextPack version, model/skill/prompt versions,
-findings revision, and human decisions. A stage may be retried only when its input identities
+configuration, evidence schema and hash, ContextPack version, exact Human Context revisions where
+used, model/skill/prompt versions, findings revision, and human review decisions. A stage may be retried only when its input identities
 match; otherwise a new analysis run or explicit revision is required.
 
 `PartialSuccess` at the analyzer level may still permit semantic analysis if
@@ -322,13 +338,20 @@ coverage gaps are visible in the ContextPack and findings. It must never be
 silently promoted to complete coverage. A fatal evidence-integrity error blocks
 reasoning for that artifact.
 
+The decision to proceed must keep Coverage, Support, Confidence, Completeness and deterministic
+Resolution Quality conceptually distinct. This does not require a populated Confidence value before
+its calibration and exposure gate is met. Thresholds for automatic continuation, review or
+rejection are **OPEN DECISIONS** governed by the
+[Quality and Evaluation Strategy](../quality/01-evaluation-strategy.md).
+
 ## Deterministic/model/human control flow
 
 | Concern | Deterministic application code | Model reasoning | Human |
 |---|---|---|---|
 | Repository bytes and source spans | Captures and verifies | Receives only selected excerpts/evidence | Chooses repository and scope |
 | Evidence Graph | Creates and validates | Read-only input; cannot create `Observed` evidence | May report missing or incorrect evidence |
-| Findings | Validates schema, evidence links, semantic view, and classification | Produces `Inferred` recovered-knowledge or `Proposed` DDD-design candidates | Accepts, rejects, clarifies, or challenges without changing classification |
+| Human Context | Persists typed, versioned records and validates references to the sealed pack | May use only supplied revisions as attributable context, never source evidence | Supplies/corrects domain statements separately from review decisions; supersession does not rewrite history |
+| Findings | Validates schema, separate Evidence/Human Context links, semantic view, and classification | Produces `Inferred` recovered-knowledge or `Proposed` DDD-design candidates | Accepts, rejects, or challenges without changing classification |
 | Domain Knowledge Model | Materializes one versioned asset and preserves the two semantic views | Suggests semantic content through findings only | Reviews each explicitly labeled view; cannot turn a proposal into recovered knowledge |
 | Pipeline | Enforces state, authorization, retry, and budgets | Cannot advance state directly | Starts, cancels, and resumes authorized work |
 
@@ -346,8 +369,10 @@ MCP, A2A, or autonomous sub-agent composition.
 - A model response that fails its requested schema or cites unavailable
   evidence may be rejected and repaired within a bounded retry policy. A retry
   is a new finding attempt, not new source evidence.
-- Human clarification is a durable input with author, time, scope, and revision
-  provenance. It is not rewritten into source evidence.
+- Human clarification used in reasoning is a durable Human Context record with a stable ID, time,
+  scope, eliciting question/request, statement, revision/supersession lineage, and an actor/session/
+  principal reference only when available under the approved identity model. It remains separate
+  from review state and source evidence; a correction creates a new revision.
 - Operational retries must be idempotent with respect to immutable snapshot and
   versioned-stage identities. Partial writes must not become canonical state.
 - Cancellation must propagate to workers and model calls, terminate work after
@@ -396,11 +421,15 @@ trusted analyzer catalog. It is not delegated to a model and does not change the
    analyzer selection and generated Analysis Plans are a FUTURE decision.
 6. **Human review transitions:** which decisions are editable, who can approve
    them, and how accepted findings are superseded.
-7. **Structured output repair:** schema, bounded retry count, and escalation to
+7. **Human Context contract:** final name (`Human Context` versus `Domain Assertion`), physical
+   schema, validation/status vocabulary, conflicting statements, rules for effects on Support,
+   whether context alone may support a finding, and stale-marking after supersession. Identity
+   attribution remains conditional on the approved identity model.
+8. **Structured output repair:** schema, bounded retry count, and escalation to
    a human when model output remains invalid.
-8. **Progress model:** durable progress units and estimates without coupling
+9. **Progress model:** durable progress units and estimates without coupling
    clients to analyzer internals.
-9. **Retention and replay:** how long snapshots, ContextPacks, model exchanges,
+10. **Retention and replay:** how long snapshots, ContextPacks, model exchanges,
    and intermediate artifacts remain available.
-10. **Decomposition entry criteria:** the explicit approval and knowledge-model
+11. **Decomposition entry criteria:** the explicit approval and knowledge-model
     completeness needed before post-V1 decomposition analysis begins.

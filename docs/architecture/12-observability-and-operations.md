@@ -73,7 +73,7 @@ stages, worker attempts, model invocations, review pauses, and persistence. This
 - an individual **stage attempt**, which records one execution and retry history;
 - a **worker job/attempt correlation value**, which scopes isolated analyzer execution;
 - a **model invocation correlation value**, which scopes one structured reasoning request/response;
-- evidence, node, edge, finding, Domain Knowledge Model version, and human-decision identities.
+- evidence, node, edge, Human Context revision, finding, Domain Knowledge Model version, and human-review-decision identities.
 
 Milestone 1 implements Snapshot IDs and canonical evidence identities, but not Analysis Run IDs.
 The exact identifier formats and propagation mechanism are open decisions. Correlation identifiers
@@ -87,7 +87,7 @@ must not encode source paths, secrets, user tokens, or other sensitive data.
 | Metric | Track rates, latency, capacity, reliability, coverage, model use, and cost. | Runs/stages started/completed/failed/cancelled, queue time, duration, bytes/files, evidence counts, diagnostic counts, worker resource indicators, tokens, model latency, estimated cost. | Aggregated and low-cardinality; repository paths, symbol names, prompts, and source content are not metric dimensions. |
 | Trace | Correlate a request and its stage/dependency spans across trusted and isolated boundaries. | Analysis Run, intake, snapshot, analyzer dispatch, worker execution, persistence, context build, model invocation, finding validation, review transition. | Span payloads follow the same source/secret redaction policy as logs. |
 | Analysis diagnostic | Explain coverage, ambiguity, unsupported constructs, validation failure, or other result limitations to users and later reasoning. | Stable code, severity, safe message, relevant artifact/evidence references, analyzer/rule/version, stage. | Part of durable analysis results where applicable; not equivalent to an operational incident. |
-| Audit event | Record security- and governance-relevant actions and state transitions. | Applicable caller/session/principal/workload context, action, subject ID, prior/new review or pipeline state, policy decision, version, time, outcome. | Append-only according to policy; does not include source content unless explicitly required and approved. |
+| Audit event | Record security- and governance-relevant actions and state transitions. | Applicable caller/session/principal/workload context, action, subject ID, Human Context revision/supersession or prior/new review/pipeline state, policy decision, version, time, outcome. | Append-only according to policy; does not include source or Human Context content unless explicitly required and approved. |
 
 ## Required operational views
 
@@ -119,7 +119,8 @@ For each model call, persist or emit policy-approved metadata sufficient to repr
 the interaction without automatically retaining source code or complete prompts:
 
 - Analysis Run, finding/reasoning task, skill and prompt-contract version;
-- ContextPack version/hash, evidence reference count, pruning/truncation/limitation summary;
+- ContextPack version/hash, separate evidence and Human Context reference counts, prior-finding
+  reference count, and pruning/truncation/limitation summary;
 - model provider/deployment/version where exposed;
 - request/output schema versions;
 - input/output token counts, latency, retry/repair count, and estimated cost;
@@ -130,6 +131,35 @@ Prompt, response, source snippet, and chain-of-thought retention are not implied
 capture requires an explicit source-egress, privacy, retention, and access policy. DomainLens must
 not request or store hidden model reasoning as an operational requirement.
 
+### Quality and evaluation telemetry
+
+Product V1 must make quality evaluation possible without confusing metrics with source evidence.
+Run- and stage-scoped records should expose, where defined:
+
+- artifact and analyzer coverage with declared numerator, denominator, exclusions and versions;
+- counts of exact, partial, ambiguous and unresolved deterministic relationships;
+- provenance, graph-integrity and unsupported-artifact outcomes;
+- semantic validation failures such as invalid Evidence IDs, out-of-ContextPack references,
+  unsupported claims and semantic-view/classification violations;
+- counterevidence/alternative handling, Human Context attribution/validation outcomes, and
+  human-review outcomes as separate signals;
+- completion, partial-analysis and typed failure rates;
+- stage duration, model invocation and token/cost measurements; and
+- retry/repair and human-escalation frequency.
+
+These signals describe DomainLens performance and analysis quality. They are not Evidence Graph
+facts about the analyzed application. Semantic-quality evaluation must compare outputs with
+expert-reviewed expectations, not model self-confidence. The metric catalogue, benchmark corpus
+and non-negotiable gates are defined in the
+[Quality and Evaluation Strategy](../quality/01-evaluation-strategy.md); numeric product thresholds
+remain open until approved.
+
+If Confidence is reported as a quality signal or product result, it must remain unavailable or not
+calibrated until a versioned calibration method, an applicable expert-reviewed evaluation corpus,
+evaluated calibration results, and an approved product decision to expose it all exist. Raw model
+self-confidence is never a substitute, and Support must remain a separate measure rather than being
+relabeled as Confidence.
+
 ### Version lineage
 
 Durable results should retain versions that can change meaning or reproducibility:
@@ -138,6 +168,7 @@ Durable results should retain versions that can change meaning or reproducibilit
 - repository snapshot and manifest;
 - analyzer/extractor and rule versions;
 - configured V1 analyzer profile/job capability versions and bounded configuration, or a future Analysis Plan identity when that capability exists;
+- Human Context schema and the exact revision IDs selected for reasoning;
 - ContextPack recipe and schema;
 - skill and prompt-contract version;
 - model provider/deployment/version when available;
@@ -175,6 +206,8 @@ evidence or finding revisions without lineage.
 - Deterministic stages may be retried only against the same identifiable inputs, configured analyzer job, analyzer versions, and configuration when equivalence is claimed.
 - A worker job retry creates a distinct attempt correlation value even when it belongs to the same pipeline stage.
 - A model structured-output repair or retry records the initiating validation failure, skill/model/version, and new invocation identity.
+- A Human Context correction creates a new revision with a supersession link; it does not overwrite
+  the statement that earlier reasoning consumed.
 - Human-directed re-analysis creates a new finding revision or analysis step; it does not edit deterministic evidence in place.
 - Non-retryable policy or validation failures surface explicitly rather than consuming a generic retry budget.
 
@@ -183,9 +216,16 @@ Retry limits, backoff, poison-job handling, and operator intervention thresholds
 ## Audit trail
 
 The audit trail should make consequential actions answerable: who or what started/cancelled a run,
-which snapshot and versions were used, which worker and model operations occurred, why a finding
+which snapshot and versions were used, which worker and model operations occurred, which Human
+Context revision and eliciting question or scope informed a finding, who supplied, corrected, or
+superseded that context when the approved identity model provides such a reference, why a finding
 revision was accepted/rejected/challenged, and what projection entered a Domain Knowledge Model
 version.
+
+Human Context provenance, model interpretation, and human review decisions remain separate audit
+subjects linked by stable IDs. An audit event about a supplied statement does not make it Evidence
+Graph content, and a review decision does not alter or replace the Human Context revision that
+informed reasoning.
 
 Semantic view, review status, and finding classification are independent. An audit event that
 records human acceptance must not relabel an `Inferred` finding as `Observed`, relabel a
@@ -194,7 +234,7 @@ knowledge.
 
 ## Data protection and telemetry hygiene
 
-- Treat repository names, URLs, paths, symbols, source snippets, comments, configuration values, prompts, responses, exception text, and user clarification as potentially sensitive and untrusted.
+- Treat repository names, URLs, paths, symbols, source snippets, comments, configuration values, prompts, responses, exception text, and Human Context as potentially sensitive and untrusted.
 - Use structured allowlisted properties rather than serializing arbitrary objects or model payloads.
 - Sanitize control characters and bound event/property sizes before export.
 - Redact secrets before telemetry leaves its producing boundary; a downstream telemetry backend is not the primary secret filter.
@@ -224,6 +264,10 @@ values.
 - **OPEN DECISION — retries:** per-stage budgets, backoff, idempotency keys, poison-job handling, and operator repair workflow.
 - **OPEN DECISION — token and cost governance:** budgets, attribution, quotas, forecasts, and stop/degrade behavior.
 - **OPEN DECISION — sampling:** which traces/logs may be sampled and which audit/security events must never be sampled.
+- **OPEN DECISION — quality metrics:** measurement denominators, aggregation, benchmark result
+  retention, comparison compatibility and release-gate thresholds.
+- **OPEN DECISION — Human Context audit:** canonical record name, event taxonomy, content-versus-ID
+  retention, status/validation semantics, conditional identity attribution, and supersession events.
 
 ## Related architecture
 
@@ -233,6 +277,7 @@ values.
 - [Security Architecture](09-security-architecture.md)
 - [Deployment Architecture](10-deployment-architecture.md)
 - [Repository Structure Scanner 0.1](../11-milestone-1-repository-scanner.md)
+- [Quality and Evaluation Strategy](../quality/01-evaluation-strategy.md)
 
 Related accepted decisions: [ADR-002](../adr/002-modular-architecture-with-isolated-analyzer-worker.md),
 [ADR-004](../adr/004-separate-deterministic-evidence-from-ai-interpretation.md), and

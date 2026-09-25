@@ -6,7 +6,7 @@ DomainLens is language- and framework-extensible. Legacy C#/.NET Framework/WCF i
 supported workload, not the architectural boundary of the platform.
 
 - **CURRENT — Milestone 1:** one built-in C# Repository Structure Scanner creates language-neutral Evidence Graph records for repository, solution, project, dependency, namespace, type, and member structure. There is no analyzer plugin system, technology-discovery service, or generated Analysis Plan.
-- **PLANNED — Product V1:** a configured, approved legacy C#/.NET Framework/WCF analyzer path, including structural, WCF, relationship/persistence capabilities and normalized evidence contribution/validation contracts. A bounded deterministic qualification check may reject unsupported input.
+- **PLANNED — Product V1:** a configured, approved legacy C#/.NET Framework/WCF analyzer path, including structural and WCF analyzers plus one Relationship / persistence / behavioral evidence capability that includes supported security evidence, with normalized evidence contribution/validation contracts. A bounded deterministic qualification check may reject unsupported input.
 - **FUTURE:** generalized automatic technology discovery, generated Analysis Plans and analyzer-family selection; ASP.NET, modern .NET, Java/Jakarta, Spring, database, OpenAPI, messaging, and other analyzer families; and Linux-capable workers where appropriate.
 
 This document defines the concerns an analyzer boundary must satisfy. It deliberately does not
@@ -27,8 +27,7 @@ flowchart LR
     subgraph worker["Isolated Windows worker profile"]
         foundation["Repository / C# structural analyzer"]
         framework["Classic WCF analyzer"]
-        persistence["Persistence / data analyzer"]
-        relationships["Relationship enrichment"]
+        relationships["Relationship / persistence / behavioral evidence"]
     end
 
     normalize["Normalized Evidence contribution boundary"]
@@ -41,11 +40,9 @@ flowchart LR
     catalog --> execute
     execute --> foundation
     execute --> framework
-    execute --> persistence
     execute --> relationships
     foundation --> normalize
     framework --> normalize
-    persistence --> normalize
     relationships --> normalize
     normalize --> validate
     validate --> graph
@@ -178,7 +175,7 @@ last-writer-wins, priority ordering, or model arbitration is the architecture.
 |---|---|---|---|
 | Repository / C# structure | CURRENT foundation | Manifest, solutions, projects, dependencies, declarations, and syntax-resolvable relationships with provenance. | Current local process; planned Windows worker. |
 | Classic WCF | PLANNED V1 | Service/data/message contracts, operations, implementations, endpoints, bindings, hosting configuration, and supported relationships. | Windows-oriented legacy .NET worker. |
-| Relationship / persistence | PLANNED V1 | Calls, mutations, repository/data access, transaction constructs, configuration, external calls, and other supported implementation facts. | Windows worker initially. |
+| Relationship / persistence / behavioral evidence | PLANNED V1 | Calls, conditions, validation, exceptions, mutations, repository/data access, transaction and state constructs, security checks, messages, external calls, side effects, scheduled behavior, coupling, configuration, and other supported implementation facts. | Windows worker initially. |
 | ASP.NET MVC / MVC.NET | FUTURE | Controllers, actions, routing, filters, models, and supported application relationships. | Windows or .NET-capable profile, to be established. |
 | ASP.NET Web API / modern .NET | FUTURE | HTTP endpoints, middleware, dependency relationships, contracts, and configuration. | Cross-platform or Windows depending on artifacts. |
 | Java EE / Jakarta | FUTURE | Enterprise components, APIs, configuration, persistence, and supported relationships. | Linux-capable Java worker. |
@@ -189,7 +186,9 @@ last-writer-wins, priority ordering, or model arbitration is the architecture.
 
 This table is a roadmap boundary, not a commitment to design every analyzer now. Each family needs
 its own evidence rules, threat review, fixtures, determinism tests, and coverage semantics before it
-is enabled.
+is enabled. The [V1 Analysis Coverage](../design/01-v1-analysis-coverage.md) specification records
+the intended treatment and open decisions for concrete legacy .NET/WCF artifact categories; it
+does not convert the future standalone database, OpenAPI or messaging analyzer families into V1.
 
 ## Framework-specific evidence versus semantic reasoning
 

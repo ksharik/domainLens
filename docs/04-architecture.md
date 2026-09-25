@@ -23,7 +23,7 @@ Isolated Analyzer Worker
        +-- Repository Inventory
        +-- Roslyn / C# Analysis
        +-- WCF Analysis
-       +-- Relationship Extraction
+       +-- Relationship / Persistence / Behavioral Evidence
        |
 Evidence Graph -> Context Packs -> LLM Reasoning -> Finding Validation -> Finding Graph -> Human Review -> Persistent Domain Knowledge Model
 ```
