@@ -7,10 +7,12 @@ boundary**. This document assigns logical responsibilities and dependency direct
 component is not automatically a process, service, container, repository project, or Azure
 resource.
 
-- **CURRENT — Milestones 0 and 1:** `DomainLens.Core`, `DomainLens.Scanner`, and
-  `DomainLens.Cli` implement Repository Structure Scanner 0.1. The M0 feasibility projects add a
-  local child-process host/worker, a neutral shared wire-protocol contract, and narrow net472
-  semantic enrichment, without claiming a production containment boundary.
+- **CURRENT — Milestones 0–2:** `DomainLens.Core`, `DomainLens.Scanner`, and
+  `DomainLens.Cli` implement Repository Structure Scanner 0.1. The M0 projects add a local
+  child-process host/worker, a neutral shared wire-protocol contract, and narrow net472 semantic
+  enrichment. Milestone 2 adds a concrete built-in `DomainLens.Analyzer.Wcf` module and composes
+  its bounded deterministic WCF evidence into the canonical graph inside that Worker. None of this
+  claims a production containment boundary.
 - **PLANNED — Product V1:** the end-to-end web/API, pipeline, analyzer-worker, reasoning, review, and persistence capabilities described below.
 - **FUTURE:** decomposition/modernization capabilities, additional client channels, richer orchestration, generalized automatic technology discovery and generated Analysis Plans, and analyzer families beyond legacy .NET/WCF.
 
@@ -66,7 +68,7 @@ flowchart TB
         persistence["Persistence ports"]
     end
 
-    subgraph isolated["Isolated Analyzer Worker — PLANNED V1 process boundary"]
+    subgraph isolated["Analyzer Worker — CURRENT local process; PLANNED V1 containment"]
         worker["Analyzer Worker host"]
         structural["Static structural analysis"]
         framework["Framework-specific analyzers"]
@@ -118,18 +120,20 @@ Analysis Plan.
 
 | Current project | Implemented responsibility | Boundary relative to planned V1 |
 |---|---|---|
-| `DomainLens.Core` | Language-neutral Evidence Graph records, canonical identities, deterministic JSON normalization/hashing, and graph/provenance validation. | Forms the first implemented part of the planned Evidence Kernel. It contains no Finding Graph or Domain Knowledge Model. |
+| `DomainLens.Core` | Language-neutral Evidence Graph records, canonical identities, deterministic JSON normalization/hashing, graph/provenance validation, and the minimal deterministic contribution/composition primitive used by the built-in WCF analyzer. | Forms the first implemented part of the planned Evidence Kernel. The M2 composer rejects conflicting identities/properties and preserves existing graph records, but it is not a generalized plug-in contract. It contains no Finding Graph or Domain Knowledge Model. |
 | `DomainLens.Scanner` | Safe local inventory, content manifest and snapshot identity, solution/project parsing without MSBuild evaluation, Roslyn syntax extraction, declared relationships, diagnostics, and status. | Supplies the first structural analyzer implementation and is invoked by the M0 child worker; the CLI can still invoke it in process. |
-| `DomainLens.Semantics` | Verifies each selected source through a bounded seekable read against its captured length and SHA-256 before decoding, then flattens manifest-verified repository C# into one synthetic compilation against the exact tool-owned net472 catalog, declares `Partial` resolution, and provides deterministic path-free result serialization and validation. | A feasibility result separate from the Evidence Graph; it does not reproduce effective project configuration, evaluate MSBuild, restore/build/emit the repository, or establish full behavioral evidence. |
+| `DomainLens.Semantics` | Provides a manifest-verified reader for captured inert bytes and one shareable in-process C# 7.3 compilation context over ordered manifest sources and the exact tool-owned net472 catalog. It also projects the existing deterministic, path-free legacy semantic result with declared `Partial` source resolution. | Roslyn objects remain Worker-process implementation details. The generic semantic result remains separate from the Evidence Graph, while M2 consumes the shared context to create only normalized WCF evidence. It does not reproduce effective project configuration, evaluate MSBuild, restore/build/emit the repository, or establish behavioral evidence. |
+| `DomainLens.Analyzer.Wcf` | Recognizes the bounded classic WCF source attributes, source implementation links, `.svc` directives, allowlisted `system.serviceModel` declarations/relationships, bounded namespace/XDT and traversal-limit metadata, and direct `ServiceHost`, `ChannelFactory<T>`, and `ClientBase<T>` patterns. XDT is never applied and an affected WCF section is not promoted. It emits a deterministic graph contribution with stable WCF vocabulary, provenance, resolution, and diagnostics. | A concrete built-in M2 analyzer depending only on Core, Semantics, and trusted Roslyn packages. It does not depend on Host, Worker, Protocol, Scanner, UI, persistence, or reasoning modules; it is not a dynamic analyzer framework. |
 | `DomainLens.Analyzer.Protocol` | Defines the dependency-light, versioned job/result wire contracts and strict serialization used across the process boundary. | A neutral shared contract with no dependency on the Host or Worker; it does not own process, staging, validation, or cleanup behavior. |
 | `DomainLens.Analyzer.Host` | Bounded staging, allowlisted child launch, protocol consumption, worker-lifetime/result-acceptance deadline and cancellation, process-tree termination for a running worker, strict result correlation/validation, and typed cleanup. | Demonstrates the required process boundary locally. It does not provide least-privileged identity, detached-descendant containment, network denial, trusted-postprocessing preemption, or production resource containment. |
-| `DomainLens.Analyzer.Worker` | Consumes the neutral protocol, runs the scanner and semantic feasibility analyzer inside the child, and atomically emits a versioned result envelope. | It has no project reference to `DomainLens.Analyzer.Host`; it is a trusted executable prototype, not a selected Azure worker service or completed Product V1 analyzer profile. |
+| `DomainLens.Analyzer.Worker` | Consumes the neutral protocol, runs the scanner, creates exactly one shared legacy semantic context, produces the legacy semantic result, runs the Classic WCF analyzer against that same context, validates the final graph/hash, and atomically emits both artifacts in the existing versioned result envelope. | WCF parsing remains inside the Worker; the Host validates rather than analyzes repository content. The Worker has no project reference to `DomainLens.Analyzer.Host`; it is a trusted executable prototype, not a selected Azure worker service or completed Product V1 analyzer profile. |
 | `DomainLens.Cli` | Local `scan` and artifact-only `inspect` commands, canonical JSON output, exit-code mapping, and evidence display. | A Milestone 1 host and diagnostic surface, not the planned Web UI or Product V1 API. |
-| `DomainLens.Scanner.Tests` | Fixture-backed acceptance, security, determinism, identity, provenance, path-hardening, CLI, and graph-integrity tests. | Establishes current contracts; it is not a runtime component. |
+| Test projects | Scanner, semantic, Host/Worker, graph-composition, and Classic WCF fixture suites covering acceptance, security, determinism, identity, provenance, path hardening, inert configuration, protocol gates, and graph integrity. | Establish current contracts; they are not runtime components or proof of production OS containment. |
 
 For exact current behavior and limitations, see
 [Repository Structure Scanner 0.1](../11-milestone-1-repository-scanner.md) and the
-[Milestone 0 Feasibility Report](../12-milestone-0-deployment-security-feasibility.md).
+[Milestone 0 Feasibility Report](../12-milestone-0-deployment-security-feasibility.md), plus the
+[Milestone 2 Classic WCF Discovery contract](../13-milestone-2-wcf-discovery.md).
 
 ## Planned logical responsibilities
 
@@ -167,7 +171,7 @@ negotiation must be approved before they appear in a runtime flow.
 1. Client components depend on application contracts, not analyzer or persistence implementations.
 2. The Pipeline Coordinator invokes fixed application capabilities; it does not contain analyzer logic or model prompts.
 3. Analyzer implementations depend on the normalized Evidence Kernel contract. The language-neutral core does not depend on WCF, Roslyn, Java, Spring, database, or messaging analyzers.
-4. The current process dependency is `DomainLens.Analyzer.Host -> DomainLens.Analyzer.Protocol <- DomainLens.Analyzer.Worker`. The Worker must not depend on the Host; host-only lifecycle and trust-gate types remain in the Host.
+4. The current process dependency is `DomainLens.Analyzer.Host -> DomainLens.Analyzer.Protocol <- DomainLens.Analyzer.Worker`. Inside the Worker, the bounded analyzer direction is `Worker -> WCF -> { Core, Semantics }`, while Scanner and Semantics also depend on Core. The Worker and WCF analyzer must not depend on the Host; host-only lifecycle and trust-gate types remain in the Host.
 5. Only deterministic analyzers can contribute Observed evidence, and every contribution must carry snapshot-scoped provenance and resolution.
 6. The Context Builder reads validated evidence, finding state, and specific Human Context revisions through bounded retrieval operations. It preserves their distinct types and does not expose an unrestricted checkout or general-purpose filesystem tool to a model.
 7. The Reasoning Runtime can produce candidate Inferred or Proposed findings only. It tags recovered/as-is meaning separately from proposed DDD design, and the Finding Validator owns acceptance into the Finding Graph.
@@ -189,7 +193,7 @@ versioned, or operationally mutable.
 
 ## Open decisions
 
-- **OPEN DECISION — module contracts:** the exact projects/packages and public interfaces for the remaining planned V1 modules beyond the current scanner and Milestone 0 feasibility projects.
+- **OPEN DECISION — module contracts:** the exact projects/packages and public interfaces for the remaining planned V1 modules beyond the current scanner, M0 feasibility projects, shared semantic context, and concrete M2 WCF analyzer.
 - **OPEN DECISION — co-deployment:** which trusted logical modules initially share a host process and what measured operational need would justify separation.
 - **OPEN DECISION — job transport:** how the Coordinator dispatches and resumes isolated analyzer work.
 - **OPEN DECISION — query boundary:** the API/query shape used by Results Explorer across Evidence, Human Context, Finding, Recovered Domain Knowledge, and Proposed DDD Design views while preserving their mandatory distinction.

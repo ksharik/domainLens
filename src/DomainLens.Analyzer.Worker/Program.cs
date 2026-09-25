@@ -1,4 +1,5 @@
 using DomainLens.Analyzer.Protocol;
+using DomainLens.Analyzer.Wcf;
 using DomainLens.Core;
 using DomainLens.Scanner;
 using DomainLens.Semantics;
@@ -40,7 +41,7 @@ internal static class Program
             EnsureDirectWorkspaceChild(resultPath, workspacePath, AnalyzerProtocol.ResultFileName);
 
             var scanner = new RepositoryScanner();
-            var analysis = await scanner.AnalyzeAsync(
+            var baselineAnalysis = await scanner.AnalyzeAsync(
                     new ScannerOptions(
                         repositoryPath,
                         job.Scanner.Solution,
@@ -49,12 +50,26 @@ internal static class Program
                         job.Scanner.MaximumTotalBytesRead))
                 .ConfigureAwait(false);
 
-            var analysisJson = AnalysisJson.Serialize(analysis, indented: false);
-            var semanticAnalysis = await new LegacySemanticAnalyzer()
-                .AnalyzeAsync(repositoryPath, analysis)
+            var semanticContext = await new LegacySemanticCompilationService()
+                .CreateAsync(repositoryPath, baselineAnalysis)
                 .ConfigureAwait(false);
+            var semanticAnalysis = await new LegacySemanticAnalyzer()
+                .AnalyzeAsync(semanticContext)
+                .ConfigureAwait(false);
+            var analysis = await new ClassicWcfAnalyzer()
+                .AnalyzeAsync(repositoryPath, baselineAnalysis, semanticContext)
+                .ConfigureAwait(false);
+            AnalysisGraphValidator.ValidateAndThrow(analysis);
+            if (!AnalysisJson.VerifyCanonicalHash(analysis))
+            {
+                throw new InvalidDataException(
+                    "The final WCF-enriched analysis canonical hash is invalid.");
+            }
+
+            var analysisJson = AnalysisJson.Serialize(analysis, indented: false);
             var semanticAnalysisJson = LegacySemanticAnalysisJson.Serialize(
                 semanticAnalysis,
+                analysis,
                 indented: false);
             EnsureNoRepositoryAssemblyWasLoaded(repositoryPath);
             var envelope = new AnalyzerWorkerResultEnvelope(

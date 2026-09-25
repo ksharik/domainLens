@@ -26,6 +26,15 @@ public sealed class AnalyzerProcessHostTests
             LegacySemanticAnalysisValidator.Validate(result.SemanticAnalysis, result.Analysis).IsValid);
         Assert.Contains(result.Analysis.Nodes, node =>
             node.Kind == "Class" && node.QualifiedName == "Sample.Widget");
+        Assert.Contains(result.Analysis.Nodes, node =>
+            node.QualifiedName == "Sample.IWidgetService" &&
+            node.Attributes.Contains("wcf.service-contract", StringComparer.Ordinal));
+        Assert.Contains(result.Analysis.Nodes, node =>
+            node.Attributes.Contains("wcf.operation-contract", StringComparer.Ordinal));
+        Assert.Contains(result.Analysis.Edges, edge =>
+            edge.Kind == "WcfContractOperation" && edge.ToNodeId is not null);
+        Assert.Contains(result.Analysis.Edges, edge =>
+            edge.Kind == "WcfImplementsContract" && edge.ToNodeId is not null);
         Assert.DoesNotContain(harness.RepositoryPath, AnalysisJson.Serialize(result.Analysis), StringComparison.OrdinalIgnoreCase);
         AssertWorkspaceWasCleaned(result);
     }
@@ -777,10 +786,14 @@ public sealed class AnalyzerProcessHostTests
             Directory.CreateDirectory(sourcePath);
             File.WriteAllText(
                 Path.Combine(sourcePath, "Sample.csproj"),
-                "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>");
+                "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><TargetFramework>net472</TargetFramework></PropertyGroup></Project>");
             File.WriteAllText(
                 Path.Combine(sourcePath, "Widget.cs"),
-                "namespace Sample; public sealed class Widget { public int Id { get; init; } }");
+                "using System.ServiceModel; namespace Sample { " +
+                "[ServiceContract] public interface IWidgetService { " +
+                "[OperationContract] int Get(int id); } " +
+                "public sealed class Widget : IWidgetService { " +
+                "public int Get(int id) { return id; } } }");
             return new TestHarness(rootPath, repositoryRoot, configuration);
         }
 

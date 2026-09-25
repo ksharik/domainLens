@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{7989C8F5-0CD5-4A34-A39D-C2504C9AE013}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>Fixtures.Wcf.Rich</RootNamespace>
+    <AssemblyName>Fixtures.Wcf.Rich</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.ServiceModel" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="RichContracts.cs" />
+    <Compile Include="RichService.cs" />
+    <Compile Include="PartialContract.Declaration.cs" />
+    <Compile Include="PartialContract.Attribute.cs" />
+  </ItemGroup>
+</Project>

@@ -5,8 +5,8 @@
 DomainLens is language- and framework-extensible. Legacy C#/.NET Framework/WCF is the first
 supported workload, not the architectural boundary of the platform.
 
-- **CURRENT — Milestone 1:** one built-in C# Repository Structure Scanner creates language-neutral Evidence Graph records for repository, solution, project, dependency, namespace, type, and member structure. There is no analyzer plugin system, technology-discovery service, or generated Analysis Plan.
-- **PLANNED — Product V1:** a configured, approved legacy C#/.NET Framework/WCF analyzer path, including structural and WCF analyzers plus one Relationship / persistence / behavioral evidence capability that includes supported security evidence, with normalized evidence contribution/validation contracts. A bounded deterministic qualification check may reject unsupported input.
+- **CURRENT — Milestones 1 and 2:** the built-in C# Repository Structure Scanner creates language-neutral structural records, and the concrete built-in Classic WCF analyzer adds its bounded source, `.svc`, configuration, hosting, and client evidence through a minimal language-neutral composer. There is no analyzer plugin system, technology-discovery service, or generated Analysis Plan.
+- **PLANNED — Product V1:** a configured, approved legacy C#/.NET Framework/WCF product path that deploys the current structural/WCF capabilities and adds one Relationship / persistence / behavioral evidence capability with supported security evidence. Its durable configured profile/job and generalized contribution/validation contracts remain open. A bounded deterministic qualification check may reject unsupported input.
 - **FUTURE:** generalized automatic technology discovery, generated Analysis Plans and analyzer-family selection; ASP.NET, modern .NET, Java/Jakarta, Spring, database, OpenAPI, messaging, and other analyzer families; and Linux-capable workers where appropriate.
 
 This document defines the concerns an analyzer boundary must satisfy. It deliberately does not
@@ -15,7 +15,7 @@ model before those components are designed.
 
 ## Extensibility flows by horizon
 
-### PLANNED V1 — configured .NET/WCF path
+### CURRENT M2 and PLANNED V1 — configured .NET/WCF path
 
 ```mermaid
 flowchart LR
@@ -25,9 +25,9 @@ flowchart LR
     execute["Bounded configured analyzer execution"]
 
     subgraph worker["Isolated Windows worker profile"]
-        foundation["Repository / C# structural analyzer"]
-        framework["Classic WCF analyzer"]
-        relationships["Relationship / persistence / behavioral evidence"]
+        foundation["Repository / C# structural analyzer — CURRENT"]
+        framework["Classic WCF analyzer — CURRENT bounded M2"]
+        relationships["Relationship / persistence / behavioral evidence — PLANNED"]
     end
 
     normalize["Normalized Evidence contribution boundary"]
@@ -53,6 +53,12 @@ V1 does not automatically select among analyzer families. A narrow deterministic
 produce an unsupported or partial-coverage diagnostic before this configured path runs, but it is
 not generalized technology inventory or plan generation. Repository content cannot supply
 executable analyzer code or alter the trusted V1 profile.
+
+The current Worker invokes the structural and WCF modules directly; it does not load a registry or
+negotiate an analyzer plan. `DomainLens.Analyzer.Wcf` depends only on the language-neutral Core,
+the bounded Semantics context, and trusted Roslyn packages. It does not depend on the Host, Worker,
+Protocol, Scanner, UI, persistence, model, or reasoning components. That concrete dependency
+direction implements Milestone 2 without closing the broader V1 analyzer-contract decisions.
 
 ### FUTURE — generalized discovery and analyzer selection
 
@@ -165,16 +171,26 @@ Composition may include:
 - multiple evidence records supporting one logical node or relationship; and
 - diagnostics identifying skipped analyzers or incomplete coverage.
 
-The precise collision, precedence, and merge algorithm for multiple analyzers contributing to the
-same logical observation is not yet approved. Until it is, documentation must not claim that
-last-writer-wins, priority ordering, or model arbitration is the architecture.
+Milestone 2 implements only a minimal built-in form of this boundary:
+`EvidenceGraphContribution` carries deterministic additions/enrichments and
+`AnalysisDocumentComposer` preserves the baseline, set-unions sorted attributes/evidence IDs,
+accepts only equal-or-absent properties, rejects identity/property/reference conflicts and duplicate
+references, produces unique ID-keyed final records, then normalizes, hashes, and validates the
+final document. The WCF analyzer enriches existing
+source nodes and creates WCF-specific nodes only where no structural node naturally represents the
+observation.
+
+The precise collision, precedence, compatibility, and migration algorithm for multiple
+independently evolving analyzers contributing to the same logical observation is still not
+approved. The current rejecting composer is not a registration or precedence policy. Documentation
+must not claim that last-writer-wins, priority ordering, or model arbitration is the architecture.
 
 ## Analyzer families
 
 | Analyzer family | Product horizon | Intended deterministic contribution | Likely worker profile |
 |---|---|---|---|
-| Repository / C# structure | CURRENT foundation | Manifest, solutions, projects, dependencies, declarations, and syntax-resolvable relationships with provenance. | Local CLI plus the M0 Windows child-worker feasibility path; production Windows worker remains planned. |
-| Classic WCF | PLANNED V1 | Service/data/message contracts, operations, implementations, endpoints, bindings, hosting configuration, and supported relationships. | Windows-oriented legacy .NET worker. |
+| Repository / C# structure | CURRENT foundation | Manifest, solutions, projects, dependencies, declarations, and syntax-resolvable relationships with provenance. | Local CLI plus the current M0/M2 Windows child-Worker path; production Windows containment remains planned. |
+| Classic WCF | CURRENT bounded M2 | Service/data/message contracts, operations, source implementations, `.svc`, allowlisted services/endpoints/bindings/behaviors/hosting, bounded inert XDT/namespace metadata and traversal diagnostics, direct `ServiceHost`/`ChannelFactory<T>`/`ClientBase<T>` patterns, and explicit degraded relationships. | Current local Windows-oriented child Worker; transforms are not applied, and production Windows containment remains planned. |
 | Relationship / persistence / behavioral evidence | PLANNED V1 | Calls, conditions, validation, exceptions, mutations, repository/data access, transaction and state constructs, security checks, messages, external calls, side effects, scheduled behavior, coupling, configuration, and other supported implementation facts. | Windows worker initially. |
 | ASP.NET MVC / MVC.NET | FUTURE | Controllers, actions, routing, filters, models, and supported application relationships. | Windows or .NET-capable profile, to be established. |
 | ASP.NET Web API / modern .NET | FUTURE | HTTP endpoints, middleware, dependency relationships, contracts, and configuration. | Cross-platform or Windows depending on artifacts. |
@@ -215,16 +231,19 @@ evidence revision; it must not silently rewrite the output of an earlier snapsho
 
 Schema evolution must provide an explicit compatibility and migration policy before multiple
 independently evolving analyzer families are introduced. The current
-`domainlens.evidence.v1` document is the Milestone 1 contract, not a guarantee that all future
+`domainlens.evidence.v1` document carries the Milestone 1 structural and Milestone 2 WCF records;
+that is not a guarantee that all future
 framework concepts can be encoded without versioning.
 
 ## Open decisions
 
 - **OPEN DECISION — analyzer packaging:** built-in modules, signed packages, separately deployed workers, or another trusted distribution model.
 - **OPEN DECISION — registration:** catalog manifest, dependency injection registration, or another allowlisted discovery mechanism. Repository-driven dynamic loading is not an option.
-- **OPEN DECISION — V1 contract shape:** the concrete analyzer, configured job/profile, contribution, qualification-result, and diagnostic schemas/interfaces for the known .NET/WCF path.
+- **OPEN DECISION — V1 contract shape:** the durable configured job/profile, qualification-result, generalized analyzer contribution, compatibility, and diagnostic schemas/interfaces for the known .NET/WCF path. The concrete M2 built-in analyzer and minimal composer do not settle this contract.
 - **FUTURE DECISION — technology discovery and Analysis Plan:** technology-observation schema, deterministic rule precedence, user overrides, conflicting indicators, applicable-family selection, and skipped-analyzer semantics.
-- **OPEN DECISION — graph composition:** namespace governance for kinds/rules, identity collisions, duplicate contributions, precedence, and cross-analyzer reference resolution.
+- **OPEN DECISION — generalized graph composition:** namespace governance for kinds/rules,
+  compatibility, migration, precedence, and cross-analyzer reference resolution beyond the current
+  rejecting M2 composer.
 - **OPEN DECISION — version compatibility:** Evidence Model evolution, analyzer/core compatibility ranges, result migration, and re-analysis triggers.
 - **OPEN DECISION — worker scheduling:** capability/OS matching, resource classes, analyzer co-location, and isolation profiles.
 - **OPEN DECISION — analyzer conformance:** the fixture, determinism, security, performance, provenance, and coverage test suite required before catalog admission, including representative non-DDD systems and misleading or absent DDD-style names.
@@ -239,6 +258,7 @@ framework concepts can be encoded without versioning.
 - [Security Architecture](09-security-architecture.md)
 - [Roadmap](../10-roadmap.md)
 - [Repository Structure Scanner 0.1](../11-milestone-1-repository-scanner.md)
+- [Milestone 2 Classic WCF Discovery](../13-milestone-2-wcf-discovery.md)
 
 Related accepted decisions: [ADR-006](../adr/006-language-and-framework-neutral-analyzer-architecture.md)
 and [ADR-009](../adr/009-no-dynamic-agents-mcp-or-a2a-required-for-v1.md).

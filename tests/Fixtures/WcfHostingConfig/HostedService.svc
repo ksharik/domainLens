@@ -1,0 +1,6 @@
+<%@ ServiceHost
+    Language="C#"
+    Service="Fixtures.Wcf.Hosting.HostedService"
+    CodeBehind="HostedService.svc.cs"
+    Factory="Fixtures.Wcf.Hosting.InertFactory"
+%>

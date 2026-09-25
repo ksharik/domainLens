@@ -10,11 +10,13 @@ remember an entire repository.
 > **Code establishes evidence. AI interprets evidence. The agent orchestrates
 > the process.**
 
-The current implementation is the authority for the Milestone 1 wire model.
-Milestone 0 also contains a separate legacy-semantic feasibility artifact; it
-does not alter `domainlens.evidence.v1` or silently turn compiler bindings into
-Evidence Graph records. Its boundary is summarized in the
-[Milestone 0 Feasibility Report](../12-milestone-0-deployment-security-feasibility.md).
+The current implementation is the authority for the Milestone 1/Milestone 2 wire model.
+Milestone 0 also contains a separate legacy-semantic feasibility artifact; it does not alter
+`domainlens.evidence.v1` or automatically turn every compiler binding into an Evidence Graph
+record. Milestone 2 reuses that in-process compiler context and projects only its documented WCF
+observations into the same graph. These boundaries are summarized in the
+[Milestone 0 Feasibility Report](../12-milestone-0-deployment-security-feasibility.md) and the
+[Milestone 2 Classic WCF Discovery contract](../13-milestone-2-wcf-discovery.md).
 This chapter labels unimplemented designs as **PLANNED — Product V1** or
 **FUTURE**. See [Analysis Pipeline](04-analysis-pipeline.md) for stage ordering
 and [Repository Structure Scanner 0.1](../11-milestone-1-repository-scanner.md)
@@ -61,9 +63,9 @@ declared type reference is still an **Observed** fact about source syntax; it is
 not an AI inference. Conversely, a strongly supported bounded-context candidate is
 still **Inferred** or **Proposed**, never Observed.
 
-Milestone 1 implements only the Evidence Graph. Its schema does not yet carry
+Milestones 1 and 2 implement only the Evidence Graph. Its schema does not yet carry
 an `Observed` field because every graph record created by the scanner is
-deterministic by construction. The Finding Graph and its explicit
+or WCF analyzer is deterministic by construction. The Finding Graph and its explicit
 classification contract are PLANNED.
 
 ### Model-output prohibition
@@ -77,7 +79,7 @@ records with their own provenance and identifiers. They remain distinct from sou
 model interpretation, epistemic classification, and human review decisions. The final name
 (`Human Context` versus `Domain Assertion`) and physical schema remain open.
 
-## CURRENT — Milestone 1 evidence document
+## CURRENT — Milestone 1 and 2 evidence document
 
 The current schema identifier is `domainlens.evidence.v1`. The implementation
 uses immutable-style C# records and canonical JSON; it does not publish a
@@ -203,9 +205,12 @@ content hash always covers original file bytes, not normalized text.
 
 Current extractors identify themselves as
 `domainlens.repository-structure@0.1.0` and
-`domainlens.csharp-syntax@0.1.0`. The version identifies extraction behavior;
+`domainlens.csharp-syntax@0.1.0`. Milestone 2 adds
+`domainlens.classic-wcf@0.1.0` with rule IDs under the `wcf.source.*`, `wcf.svc.*`, and
+`wcf.config.*` namespaces. The version identifies extraction behavior;
 the rule ID identifies the particular observation, such as a project
-declaration, source membership, type declaration, or method parameter type.
+declaration, source membership, type declaration, method parameter type, WCF contract declaration,
+or configured endpoint relationship.
 
 ### Resolution basis and quality
 
@@ -219,9 +224,12 @@ The language-neutral basis vocabulary is:
 - `Metadata`
 - `Composite`
 
-Milestone 1 currently emits `DeclarativeConfiguration` and `Syntax`. Here,
-`Semantic` is reserved for deterministic semantic analysis such as a compiler
-binding operation; it does not mean free-form LLM reasoning.
+Milestone 1 emits `DeclarativeConfiguration` and `Syntax`. Milestone 2 additionally uses
+`Semantic` and `Composite` for the bounded rule that established each WCF observation
+or relationship. `Semantic` means deterministic compiler binding inside the controlled Worker; it
+does not mean free-form LLM reasoning. A unique same-file configuration declaration can be
+`DeclarativeConfiguration/Exact`; configuration-to-source matching is `Composite/Partial` even
+when one source candidate exists because effective project and runtime selection remain unknown.
 
 The quality vocabulary is:
 
@@ -283,6 +291,24 @@ for example `Box` followed by `` `1 ``. Instance and static constructors use
 `.ctor(...)` and `.cctor()` identities. Partial declarations merge source
 evidence into one node when their stable key is the same.
 
+Milestone 2 enriches an existing source type, method, field, or property when the WCF observation
+is unambiguously the same declaration. Stable source-node attributes include
+`wcf.service-contract`, `wcf.operation-contract`, `wcf.data-contract`, `wcf.data-member`,
+`wcf.message-contract`, `wcf.message-header`, `wcf.message-body-member`, and `wcf.client-base`.
+Allowlisted static metadata is stored under analyzer-owned `wcf.*` property keys.
+
+When no structural declaration naturally represents the observation, Milestone 2 adds these node
+kinds:
+
+- `WcfFaultDeclaration`;
+- `WcfConfiguredService`, `WcfEndpoint`, `WcfBinding`, and `WcfBehavior`;
+- `WcfHostingDeclaration`, `WcfServiceActivation`, and `WcfExtensionDeclaration`; and
+- `WcfServiceHostSite` and `WcfChannelFactorySite`.
+
+These are implementation observations. They are not business capabilities, commands, domain
+events, domain services, entities, value objects, aggregates, bounded contexts, or any other DDD
+classification.
+
 The repository node is synthetic and currently has no source evidence. This is
 valid and explicitly displayed as such by `inspect`. Architecture claims
 should therefore say source-backed observations are traceable, not that every
@@ -309,6 +335,22 @@ Declared type dependencies cover supported declaration signatures and base
 lists. They are not a method-body call graph, data flow, runtime dependency
 graph, or proof that an external type binds successfully.
 
+Milestone 2 adds the following bounded WCF relationship kinds:
+
+- contract/shape: `WcfContractOperation`, `WcfCallbackContract`, `WcfDeclaresFault`,
+  `WcfFaultDetailType`, `WcfUsesDataContract`, `WcfUsesMessageContract`, `WcfDataMember`,
+  `WcfMessageHeader`, and `WcfMessageBodyMember`;
+- source implementation/client: `WcfImplementsContract`, `WcfImplementsOperation`,
+  and `WcfClientContract` (used for both `ChannelFactory<T>` and `ClientBase<T>` contract links); and
+- hosting/configuration: `WcfHostsService`, `WcfConfiguredServiceImplementation`,
+  `WcfConfiguredServiceEndpoint`, `WcfEndpointContract`, `WcfEndpointBinding`,
+  `WcfEndpointBehavior`, `WcfServiceBehavior`, and `WcfServiceActivationImplementation`.
+
+For an ambiguous or unresolved target, `ToNodeId` remains `null` and `UnresolvedTarget` retains the
+bounded stable textual target. An exact framework attribute identity does not upgrade a
+source-to-source, configuration-to-source, or runtime-selection relationship beyond the quality
+supported by its own rule.
+
 ### Diagnostics and analysis status
 
 `AnalysisDiagnostic` represents coverage loss, degradation, informational
@@ -321,6 +363,21 @@ converted diagnostics currently use paths, line/column properties, and
 `Success`, `PartialSuccess`, and `Failure` summarize deterministic analysis
 coverage as described in [Analysis Pipeline](04-analysis-pipeline.md). They are
 not Finding Graph acceptance states.
+
+Milestone 2 diagnostics use stable `DL4xxx` codes for framework-profile mismatch, unresolved
+attribute identity/value, source/configuration relationship degradation, malformed or unsupported
+`.svc` and XML forms, external configuration, inert custom extensions, unsupported source patterns,
+and manifest-read failure. `DL4401` also covers trusted `OperationContract`/`FaultContract`
+attributes outside the selected contract/operation surface; their source-backed evidence remains
+`Partial` and the structural node is not promoted. Configuration-specific hardening adds
+`wcf.config.traversal-limit`/`DL4306` for a capped walk and
+`wcf.config.transform`/`DL4307` for inert XDT controls. Any XDT control under the captured
+`system.serviceModel` section suppresses configuration node/edge promotion for that section;
+DomainLens never applies the transform. A namespace preflight is capped at 4,096 elements and
+unsupported behavior-subtree inspection at 256; reaching a cap produces `Partial` evidence and a
+typed diagnostic rather than an unbounded walk. Meaningful M2 exclusions, ambiguity, unsupported
+constructs, or unavailable information produce `PartialSuccess` when trustworthy evidence remains.
+Finding no WCF construct in supported scope is not evidence that the application does not use WCF.
 
 ## CURRENT — canonical identity
 
@@ -438,19 +495,23 @@ evaluation, and transitive compile behavior are not established. The extractor
 preserves ambiguous/unresolved edges instead of upgrading a textual match to a
 fact.
 
-## CURRENT — Milestone 0 semantic-enrichment feasibility result
+## CURRENT — shared Milestone 0 semantic foundation and Milestone 2 projection
 
-Milestone 0 proves a separate, deterministic `LegacySemanticAnalysisResult`
-for a narrow .NET Framework 4.7.2 profile. The analyzer revalidates manifest
-source paths, lengths, and SHA-256 hashes, then flattens every manifest-listed
-C# source into one synthetic `CSharpCompilation`. It queries `SemanticModel`
-using the exact tool-owned `Microsoft.NETFramework.ReferenceAssemblies.net472`
-catalog. The result declares `RepositoryManifestCSharpSources` compilation
-scope and `Partial` compilation resolution because effective project
-membership, references, target configuration, conditional items, and
-preprocessor settings are not reproduced. It never evaluates repository
-MSBuild, restores/builds or emits the repository, or admits repository
-binaries, analyzers, or generators as compiler inputs.
+Milestone 0 proves a separate, deterministic `LegacySemanticAnalysisResult` for a narrow .NET
+Framework 4.7.2 profile. Milestone 2 factors the same controls into one
+`LegacySemanticCompilationContext`: a manifest-verified, ordered set of C# sources, deterministic
+C# 7.3 `CSharpCompilation`, semantic models, diagnostics, and the exact tool-owned
+`Microsoft.NETFramework.ReferenceAssemblies.net472` catalog. The Worker creates exactly one context
+and shares it between the legacy semantic projection and the Classic WCF analyzer. Roslyn objects
+remain in-process and are never serialized through the worker protocol.
+
+The compilation scope remains `RepositoryManifestCSharpSources` with `Partial` source resolution
+because effective project membership, references, target configuration, conditional items, and
+preprocessor settings are not reproduced. It never evaluates repository MSBuild, restores/builds
+or emits the repository, or admits repository binaries, analyzers, or generators as compiler
+inputs. The reusable manifest reader applies the same containment, exact-length, SHA-256, bounded
+read, cancellation, and reparse checks to captured `.cs`, `.svc`, and `.config` bytes selected from
+the accepted manifest.
 
 The child worker returns semantic JSON and its SHA-256 digest alongside the
 Evidence Graph envelope. **PROVEN:** the trusted host requires both artifacts,
@@ -469,11 +530,31 @@ assembly-name/relative-path descriptors. That drift check is not artifact
 signing or independent deployment attestation; those remain production
 supply-chain responsibilities.
 
-This result records compiler bindings and diagnostics, not business meaning.
-It does not yet contribute nodes/edges to the Evidence Graph, satisfy the
-planned method-body/behavioral evidence contract, or authorize a finding.
-Projection/reconciliation rules, additional trusted framework profiles,
-coverage accounting, and schema evolution remain **OPEN**.
+The generic legacy result still records compiler bindings and diagnostics, not business meaning,
+and remains separate from the Evidence Graph. Milestone 2 alone projects normalized WCF facts from
+that context and captured declarative artifacts. It does not satisfy the planned method-body/
+behavioral evidence contract or authorize a finding. Non-WCF projection/reconciliation,
+additional trusted framework profiles, broader coverage accounting, and schema evolution remain
+**OPEN**.
+
+## CURRENT — bounded deterministic graph composition
+
+Milestone 2 adds a small language-neutral `EvidenceGraphContribution` and
+`AnalysisDocumentComposer` for the built-in analyzer. Composition:
+
+1. preserves all accepted baseline evidence, nodes, edges, and existing identities;
+2. permits enrichment of an existing node only when its identity fields agree;
+3. set-unions and ordinally sorts attributes and evidence IDs;
+4. accepts a property only when absent or byte-for-byte equal to the existing value;
+5. produces unique ID-keyed final records and rejects conflicting ID reuse, repeated references,
+   conflicting logical nodes/identity fields/properties, and incompatible resolved versus
+   unresolved endpoints;
+6. computes canonical identities for new edges and evidence; and
+7. normalizes, hashes, and validates the complete document before it crosses the Worker boundary.
+
+This is sufficient for the concrete built-in WCF analyzer. It does not settle generalized analyzer
+registration, kind governance, contribution compatibility, cross-analyzer precedence, migration,
+or plug-in loading.
 
 ## PLANNED — Finding Graph traceability
 
@@ -504,8 +585,9 @@ knowledge.
 
 ## PLANNED — analyzer extension contract
 
-Future deterministic analyzers for WCF, ASP.NET, Java, persistence, OpenAPI,
-and messaging will add normalized graph records through the Evidence Kernel.
+The concrete WCF analyzer already adds normalized records through the bounded composition path
+above. Future deterministic analyzers for ASP.NET, Java, persistence, OpenAPI, and messaging, plus
+the planned Milestone 3 capability, must add normalized graph records through the Evidence Kernel.
 They must:
 
 1. consume an identified repository snapshot or another explicitly versioned

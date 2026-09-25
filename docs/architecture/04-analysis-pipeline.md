@@ -10,15 +10,20 @@ architecture knowledge while preserving the governing separation:
 
 This chapter uses three explicit status labels:
 
-- **CURRENT — Milestone 1** means behavior implemented on the `development`
-  branch by Repository Structure Scanner 0.1.
+- **CURRENT — Milestone 1** means behavior implemented by Repository Structure Scanner 0.1 and
+  its standalone CLI path.
+- **CURRENT — Milestones 0 and 2** means the tested local Host/Worker boundary, shared net472
+  semantic context, and bounded Classic WCF graph enrichment. It does not mean production worker
+  containment or the complete Product V1 pipeline.
 - **PLANNED — Product V1** means an approved direction or requirement that is
   not implemented yet. Component and state names in this section are logical
   design boundaries, not promises of separate services or a frozen API.
 - **FUTURE** means an extension beyond Product V1.
 
 The current implementation details are also summarized in
-[Repository Structure Scanner 0.1](../11-milestone-1-repository-scanner.md).
+[Repository Structure Scanner 0.1](../11-milestone-1-repository-scanner.md), the
+[Milestone 0 Feasibility Report](../12-milestone-0-deployment-security-feasibility.md), and the
+[Milestone 2 Classic WCF Discovery contract](../13-milestone-2-wcf-discovery.md).
 The persistent semantic result is described in
 [Domain Knowledge Architecture](06-domain-knowledge-architecture.md), and the
 reasoning boundary is described in
@@ -153,21 +158,73 @@ Milestone 1 does **not** analyze method bodies, call graphs, WCF behavior,
 configuration semantics, persistence, runtime behavior, or DDD concepts. It
 also does not provide progress checkpoints or resume a terminated scan.
 
-## CURRENT — completion states and CLI contract
+## CURRENT — Milestones 0 and 2 isolated WCF analysis
+
+The local isolated path stages the repository, launches the fixed Worker executable, and retains
+the existing strict result envelope. Milestone 2 changes the graph produced inside the Worker; it
+does not move parsing into the trusted Host or change the process-protocol wire shape.
+
+```mermaid
+sequenceDiagram
+    participant Host as DomainLens.Analyzer.Host
+    participant Worker as DomainLens.Analyzer.Worker
+    participant Scanner as RepositoryScanner
+    participant Semantics as LegacySemanticCompilationService
+    participant WCF as ClassicWcfAnalyzer
+    participant Core as Composer and Graph Validator
+
+    Host->>Host: capture bounded staged snapshot
+    Host->>Worker: fixed job over staged repository
+    Worker->>Scanner: build Milestone 1 baseline graph
+    Scanner-->>Worker: canonical structural AnalysisDocument
+    Worker->>Semantics: verify manifest C# and create one net472 context
+    Semantics-->>Worker: ordered sources, compilation, models, diagnostics
+    Worker->>Worker: project legacy semantic result from shared context
+    Worker->>WCF: analyze baseline plus same context and manifest bytes
+    WCF->>Core: compose normalized WCF contribution
+    Core-->>Worker: validated canonical enriched graph
+    Worker->>Worker: verify graph and canonical hash
+    Worker-->>Host: existing envelope with graph and semantic result hashes
+    Host->>Host: strict protocol, snapshot, graph, semantic, and repository-integrity gates
+```
+
+The WCF stage deterministically:
+
+1. recognizes allowlisted WCF framework attributes through trusted semantic identity and enriches
+   existing source nodes;
+2. adds supported contract, operation, fault, data/message, implementation, `.svc`, configuration,
+   hosting, and client relationships;
+3. reads `.svc` and `.config` only through the manifest-verified reader, parses configuration with
+   DTD/external resolution disabled, and uses capped iterative walks for namespace and unsupported
+   behavior metadata;
+4. retains XDT controls as `Partial` evidence without applying them, suppresses declaration
+   promotion for the affected `system.serviceModel` section, and emits explicit `Exact`, `Partial`,
+   `Ambiguous`, or `Unresolved` results plus typed placement/traversal/transform diagnostics;
+5. preserves every accepted structural record while the language-neutral composer rejects
+   conflicting identity reuse or property values and repeated reference lists; and
+6. returns only normalized evidence—never Roslyn objects, runtime WCF objects, findings, or DDD
+   classifications.
+
+The standalone CLI still invokes only the Milestone 1 scanner. The local Host/Worker API is an
+executable analysis boundary and test surface, not the Product V1 intake, coordinator, persistence,
+or UI pipeline.
+
+## CURRENT — deterministic analysis states and CLI contract
 
 The `AnalysisDocument.Status` values describe deterministic coverage, not the
 future orchestration lifecycle:
 
 | Status | Current meaning | Typical causes |
 |---|---|---|
-| `Success` | Analysis completed without a known coverage loss. Informational diagnostics may still exist. | Fully supported literal structure; an inert `Exec` observation is informational. |
-| `PartialSuccess` | Trustworthy evidence exists, but at least one scanner warning or error indicates reduced coverage. | Missing files/references, unevaluated MSBuild, conditional compilation, syntax errors, or resource exclusions. |
+| `Success` | Analysis completed without a known coverage loss. Informational diagnostics may still exist. | Fully supported literal structure and WCF forms; an inert `Exec` observation is informational. |
+| `PartialSuccess` | Trustworthy evidence exists, but at least one deterministic analyzer warning or error indicates reduced coverage. | Missing files/references, unevaluated MSBuild, conditional compilation, syntax/XML errors, unsupported WCF placements/forms, inert XDT controls, bounded traversal exhaustion, profile mismatch, ambiguity, unresolved targets, or resource exclusions. |
 | `Failure` | No acceptable graph could be produced for the requested scope, or a graph invariant failed. | Invalid root/selection, capture limit failure, no analyzable C# project, unhandled safe failure, or graph-integrity failure. |
 
-The CLI maps these statuses to `0`, `2`, and `1` respectively. It additionally
+The Milestone 1 CLI maps these statuses to `0`, `2`, and `1` respectively. It additionally
 uses `3` for an unmatched or ambiguous inspection query and `64` for invalid
 command usage. These codes should not be reused as the future persisted job
-state model.
+state model. The Host/Worker path instead uses its versioned process outcome and embeds the final
+`AnalysisDocument.Status`; one unresolved WCF relationship does not by itself fail the repository.
 
 Cancellation is accepted through a .NET `CancellationToken`. The CLI does not
 currently impose its own wall-clock deadline, persist cancellation state, or
@@ -241,9 +298,10 @@ flowchart TD
   evidence. Their identities, versions,
   ordering, and bounded configuration are retained with the run so retry or resume does not
   silently change tools.
-- **Structural and framework analysis** extend the Evidence Graph. The first
-  workload adds legacy .NET Framework and WCF analysis; subsequent analyzers
-  must use the same evidence/provenance contract.
+- **Structural and framework analysis** extend the Evidence Graph. The current local Worker already
+  supplies the bounded Milestone 1/Milestone 2 structural and classic WCF slice. Product V1 must
+  deploy and orchestrate that capability with the remaining configured analyzers; subsequent
+  analyzers must use the same evidence/provenance contract.
 - **Coverage accounting** records the declared scope, analyzed and excluded artifacts, unsupported
   constructs, resolution-quality distribution, diagnostics, and known limitations for every
   analyzer stage. Coverage metadata describes the analysis and is not source evidence.

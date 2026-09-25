@@ -14,6 +14,10 @@ Every architecture document uses the following labels deliberately:
   child worker and narrow net472 semantic enrichment. It is not production containment or an
   Azure deployment.
 - **CURRENT — Scanner 0.1:** behavior implemented on `development` today. It is a local .NET 10 CLI/library vertical slice, not the complete V1 product.
+- **CURRENT — Classic WCF Discovery 0.1:** the concrete built-in M2 analyzer enriches the canonical
+  Evidence Graph inside the local child Worker for the documented bounded source, `.svc`,
+  configuration, hosting, and client rules. It is not business/DDD reasoning, effective runtime
+  WCF state, or production containment.
 - **PLANNED V1:** approved target architecture or behavior required for the end-to-end Azure product, but not necessarily implemented.
 - **FUTURE:** an evolution explicitly outside the V1 commitment.
 - **OPEN DECISION:** a design choice that has not been approved. The documentation states the required boundary without selecting an implementation.
@@ -62,20 +66,26 @@ Supporting product and design specifications refine this baseline without replac
 | [V1 Analysis Coverage](../design/01-v1-analysis-coverage.md) | Intended treatment, ownership and limitations of legacy .NET/WCF artifacts |
 | [Knowledge-to-Evidence Traceability](../design/02-knowledge-evidence-traceability.md) | Evidence and analyzer prerequisites for Domain Knowledge outputs |
 | [Milestone 0 Feasibility Report](../12-milestone-0-deployment-security-feasibility.md) | Tested child-process, security and legacy semantic-analysis mechanisms, constraints and production gaps |
+| [Milestone 2 Classic WCF Discovery](../13-milestone-2-wcf-discovery.md) | Implemented bounded WCF rules, graph vocabulary/composition, diagnostics, security boundary, and limitations |
 
 ## Current implementation and target product
 
-| Capability | CURRENT — M0/M1 evidence slice | PLANNED V1 |
+| Capability | CURRENT — M0/M1/M2 evidence slice | PLANNED V1 |
 |---|---|---|
 | Input | Local repository path and optional solution selection | Public Git URL, selected immutable revision, and validated snapshot |
-| Analysis | Bounded inventory, declarative solution/project reading, syntax-first C# extraction, plus an M0 net472 `SemanticModel` feasibility result over one flattened manifest-source compilation, the exact tool-owned reference catalog, and declared `Partial` resolution | Configured, approved legacy C#/.NET Framework/WCF structural and WCF analyzers plus one Relationship / persistence / behavioral evidence capability that includes supported security evidence; generalized automatic technology discovery and generated Analysis Plans are FUTURE |
-| Output | Validated `domainlens.evidence.v1` Evidence Graph in canonical JSON | Evidence Graph, validated Finding Graph, one versioned Domain Knowledge Model with recovered and proposed-DDD views, and evidence-backed presentations |
-| Runtime | Local CLI plus an M0 separate-child-process feasibility host with bounded staging/results, worker-lifetime/result-acceptance deadline and cancellation, result gates and cleanup; no hard deadline for synchronous trusted postprocessing, production OS containment, or Azure deployment | Azure-hosted UI/API/Core plus an isolated Windows-capable analyzer worker |
+| Analysis | Bounded inventory, declarative solution/project reading, syntax-first C# extraction, one shared manifest-verified net472 semantic context with declared `Partial` source resolution, and bounded Classic WCF source/`.svc`/configuration/programmatic discovery—including inert XDT detection and capped configuration-metadata walks—composed into the graph | Deploy the configured, approved legacy C#/.NET Framework/WCF path and add one Relationship / persistence / behavioral evidence capability with supported security evidence; generalized automatic technology discovery and generated Analysis Plans are FUTURE |
+| Output | Validated `domainlens.evidence.v1` canonical graph containing structural plus bounded WCF evidence, alongside the separately validated legacy semantic result | Evidence Graph, validated Finding Graph, one versioned Domain Knowledge Model with recovered and proposed-DDD views, and evidence-backed presentations |
+| Runtime | Local structural CLI plus a separate-child-process Host/Worker path that runs structural, shared-semantic, and WCF analysis with bounded staging/results, worker-lifetime/result-acceptance deadline and cancellation, result gates and cleanup; no hard deadline for synchronous trusted postprocessing, production OS containment, or Azure deployment | Azure-hosted UI/API/Core plus an isolated Windows-capable analyzer worker |
 | Reasoning | None | Fixed coordinator workflow, sealed Context Packs, allowlisted skills, and structured model output |
 | Persistence | Output JSON chosen by the CLI caller | Durable repository/run state, evidence, Human Context revisions, finding revisions, human review decisions, and knowledge-model versions |
 | Human interaction | CLI scan and symbol inspection | Progress, clarification, review, challenge, explanation, and result exploration |
 
-The detailed implementation authorities for the current slice are [Repository Structure Scanner 0.1](../11-milestone-1-repository-scanner.md) and the [Milestone 0 Feasibility Report](../12-milestone-0-deployment-security-feasibility.md). Product scope is defined in [V1 Scope](../02-v1-scope.md) and [Functional Requirements](../03-functional-requirements.md).
+The detailed implementation authorities for the current slice are
+[Repository Structure Scanner 0.1](../11-milestone-1-repository-scanner.md), the
+[Milestone 0 Feasibility Report](../12-milestone-0-deployment-security-feasibility.md), and the
+[Milestone 2 Classic WCF Discovery contract](../13-milestone-2-wcf-discovery.md). Product scope is
+defined in [V1 Scope](../02-v1-scope.md) and
+[Functional Requirements](../03-functional-requirements.md).
 
 ## Authority and dependency rules
 
@@ -84,7 +94,8 @@ When documents appear to overlap, apply these rules:
 1. Product and functional requirement documents define required outcomes.
 2. This architecture baseline defines structural and runtime design.
 3. Accepted ADRs explain why stable choices were made.
-4. The milestone document and source code define what Scanner 0.1 actually implements.
+4. The applicable milestone document and source code define what Scanner 0.1 and Classic WCF
+   Discovery 0.1 actually implement.
 5. Roadmap text defines sequence and direction, not present-tense capability.
 
 Logical component names do not imply independently deployed services. The planned analyzer worker is a required isolation boundary; other V1 components may remain modules in a modular application unless an approved decision establishes another deployment boundary.
@@ -109,7 +120,7 @@ The following choices are intentionally unresolved. Each is owned by the documen
 | Intake and identity | Supported Git hosts/protocols/ref forms, redirects, submodules/LFS, authentication requirement/provider, user identity and ownership model, tenancy, anonymous access, roles/permissions, sharing, and client API versioning | [System Context](01-system-context.md), [Security](09-security-architecture.md) |
 | Runtime isolation | Durable job transport, Windows OS-containment/hosting mechanism, production limits, identity, network policy, cancellation guarantees, cleanup, and Windows/Linux routing | [Runtime](03-runtime-architecture.md) |
 | Pipeline | State/checkpoint schema, retry categories and budgets, configured V1 analyzer-job contract, human-pause expiry, and partial-run completion policy | [Analysis Pipeline](04-analysis-pipeline.md) |
-| Evidence | Schema evolution, multi-analyzer merge rules, Git revision capture, and cross-snapshot logical identity/rename handling | [Evidence](05-evidence-architecture.md) |
+| Evidence | Schema evolution, generalized multi-analyzer merge/precedence rules beyond the current rejecting M2 composer, Git revision capture, and cross-snapshot logical identity/rename handling | [Evidence](05-evidence-architecture.md) |
 | Domain knowledge | Concept cardinalities, semantic-view encoding/cross-view relationships, quality-dimension representation/rubrics/aggregation/calibration, conditional Confidence availability, finding projection eligibility, version lineage, and decomposition-result schema | [Domain Knowledge](06-domain-knowledge-architecture.md) |
 | Reasoning and context | Model provider/deployment/retention, structured finding schema, support thresholds, repair budget, ContextPack budget/version, Human Context inclusion/validation, and evaluation gate for semantic retrieval | [Agent and Reasoning](07-agent-reasoning-architecture.md) |
 | Persistence | Storage products, artifact/relational split, Human Context naming/schema/revision/supersession, transactions, migrations, encryption, retention/deletion, and concurrent updates | [Persistence](08-persistence-architecture.md) |
@@ -118,7 +129,7 @@ The following choices are intentionally unresolved. Each is owned by the documen
 | Extensibility | Analyzer registration/loading, contract negotiation, future discovery heuristics/generated Analysis Plans, capability scheduling, and conformance suite | [Extensibility](11-extensibility-architecture.md) |
 | Operations | Telemetry backend, SLOs, alerts, sampling, retention, redaction, cost budgets, and incident policy | [Observability](12-observability-and-operations.md) |
 | Quality and evaluation | Coverage denominators, support/completeness rubrics, Confidence calibration/exposure readiness, benchmark annotations, release thresholds, and human-agreement policy | [Evaluation Strategy](../quality/01-evaluation-strategy.md) |
-| V1 artifact support | Partial/deferred artifact choices, safe semantic enrichment, generated/third-party inputs, SQL/stored-procedure depth, and conformance criteria | [V1 Analysis Coverage](../design/01-v1-analysis-coverage.md) |
+| V1 artifact support | Partial/deferred artifact choices beyond the bounded M2 WCF rules, additional semantic profiles/projection, generated/third-party inputs, SQL/stored-procedure depth, and conformance criteria | [V1 Analysis Coverage](../design/01-v1-analysis-coverage.md) |
 | Results experience | Query/API contract, visualizations, source excerpt policy, review gates, exports, and cross-run comparison | [Results Explorer](../product/01-results-explorer.md) |
 
 ## Terminology reconciliations

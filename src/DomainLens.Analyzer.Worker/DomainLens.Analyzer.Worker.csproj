@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DomainLens.Analyzer.Protocol\DomainLens.Analyzer.Protocol.csproj" />
+    <ProjectReference Include="..\DomainLens.Analyzer.Wcf\DomainLens.Analyzer.Wcf.csproj" />
     <ProjectReference Include="..\DomainLens.Core\DomainLens.Core.csproj" />
     <ProjectReference Include="..\DomainLens.Scanner\DomainLens.Scanner.csproj" />
     <ProjectReference Include="..\DomainLens.Semantics\DomainLens.Semantics.csproj" />
