@@ -2,11 +2,13 @@
 
 ## Evidence Graph
 
-Contains deterministic facts established from a repository snapshot: structure, declarations, WCF constructs, relationships, source spans/hashes, extractor provenance and resolution.
+Contains deterministic facts established from a repository snapshot: structure, declarations, framework constructs, relationships, source spans/hashes, extractor provenance and resolution.
+
+The Evidence Graph may include deterministic observations useful to later domain interpretation: calls, mutations, persistence access, transaction constructs, authorization checks, state assignments/transitions, messages, external calls, configuration and other analyzer-supported facts. Their business/domain meaning remains a Finding unless directly established as implementation fact.
 
 ## Finding Graph
 
-Contains semantic interpretations such as candidate bounded contexts, aggregates, entities, value objects, commands/events and proposals.
+Contains semantic interpretations and proposals derived from evidence. Examples include candidate business capabilities, bounded contexts, aggregate boundaries, business rules, invariants, workflows, data ownership and security-policy interpretations.
 
 A model response cannot create an Observed fact.
 
@@ -16,7 +18,7 @@ A model response cannot create an Observed fact.
 - **Inferred** — interpretation supported by evidence.
 - **Proposed** — architectural/domain recommendation.
 
-Review status is independent of classification.
+Review status is independent of classification. Human acceptance of an inference does not convert it into an observed fact.
 
 ## Provenance
 
@@ -24,6 +26,103 @@ Source-backed evidence records snapshot, relative file, content hash, source spa
 
 Findings preserve atomic claim, concept type, classification, subject nodes, supporting/counter evidence, assumptions, justification, support/coverage, alternatives, unresolved questions, producer/version, validation/review status and revision history.
 
-## Persistent DDD model
+## Domain Knowledge Model
 
-Validated findings project into a queryable model of domains, subdomains, bounded contexts, aggregates/roots, entities, value objects, services, commands, events, repositories and context relationships. This is a durable platform asset for future modernization.
+Validated findings project into a queryable, persistent Domain Knowledge Model.
+
+### Business Architecture
+- Business Capabilities
+- Actors
+- Use Cases
+- Domains
+- Subdomains: Core, Supporting, Generic
+
+### Strategic DDD
+- Bounded Contexts
+- Context Map
+- Upstream / Downstream
+- Shared Kernel
+- Customer / Supplier
+- Conformist
+- Published Language
+- Anti-Corruption Layer
+
+### Tactical DDD
+- Aggregates
+- Aggregate Roots
+- Entities
+- Value Objects
+- Domain Services
+- Repositories
+- Factories
+
+### Behavior
+- Commands
+- Domain Events
+- Handlers
+- Business Rules
+- Invariants
+- Policies
+- Workflows / Business Processes
+- State Transitions / Lifecycles
+- Decisions
+- Preconditions / Postconditions
+- Validation Rules
+
+### Application / Integration
+- Application Services
+- APIs / Operations
+- DTOs / Contracts
+- Messages
+- Integration Events
+- External Systems
+- Synchronous / Asynchronous Dependencies
+
+### Security
+- Authentication
+- Authorization
+- Roles / Permissions
+- Security Policies
+- Sensitive Data Rules
+
+### Data & Consistency
+- Data Ownership
+- Persistence
+- Transaction Boundaries
+- Consistency Boundaries
+- Shared Data
+
+### Architecture Evidence
+- Dependencies
+- Coupling
+- Calls
+- Side Effects
+- Configuration
+- Scheduled Processes
+- Error / Exception Behavior
+- Audit Requirements
+- Concurrency / Locking
+- Caching
+- Transaction Consistency
+
+## Relationships important to decomposition
+
+DomainLens should explicitly preserve relationships such as:
+
+`Business Capability → Domain/Subdomain → Bounded Context → Aggregate`
+
+`Actor → Use Case → Command/Operation → Business Rule → Aggregate → Domain Event`
+
+`Invariant → Affected Objects → Mutation Paths → Transaction/Consistency Boundary`
+
+It should distinguish data ownership from consumption and retain shared-table/shared-store access as coupling evidence.
+
+## Decomposition boundary
+
+The Domain Knowledge Model describes the reconstructed domain and implementation relationships. **Decomposition Analysis operates over this model; decomposition recommendations are not themselves part of deterministic Evidence Graph observations.**
+
+This separation supports:
+
+`Source Code → Evidence Graph → Domain Knowledge Model → Decomposition Analysis → Modernization Model → Target Architecture`
+
+The Domain Knowledge Model is therefore the durable platform asset for future modernization.
