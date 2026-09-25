@@ -1,5 +1,8 @@
 # Deployment
 
+> This document is a planned V1 direction, not a description of deployed
+> infrastructure. See [Deployment Architecture](architecture/10-deployment-architecture.md).
+
 ## Target
 
 Microsoft Azure is the target platform. DomainLens core is independently deployable; ChatGPT Sites/Apps are future clients rather than the runtime boundary.
@@ -19,9 +22,11 @@ Isolated Windows Analyzer Worker
   |
 Evidence + Diagnostics
   |
-Context Builder / Reasoning / Validation
+Context Builder / Reasoning
   |
-Persistent DDD Model
+Finding Validation / Finding Graph / Human Review
+  |
+Persistent Domain Knowledge Model
 ```
 
 The first workload is legacy .NET Framework/WCF, so accurate analysis may benefit from Windows reference assemblies, Roslyn/MSBuild semantics and framework-specific tooling. The worker boundary keeps these needs from constraining the web/API tier.

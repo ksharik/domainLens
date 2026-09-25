@@ -1,8 +1,11 @@
 # Architecture
 
+> This is the concise approved direction. The detailed, status-labelled design
+> is in the [Architecture and Design Baseline](architecture/README.md).
+
 ## Style
 
-DomainLens V1 uses a modular application architecture with an isolated analyzer-worker execution boundary.
+DomainLens V1 plans a modular application architecture with an isolated analyzer-worker execution boundary. Scanner 0.1 currently runs as a local CLI/library; the hosted worker boundary is not implemented yet.
 
 ```text
 DomainLens Web UI
@@ -22,7 +25,7 @@ Isolated Analyzer Worker
        +-- WCF Analysis
        +-- Relationship Extraction
        |
-Evidence Graph -> Context Packs -> LLM Reasoning -> Finding Graph -> Persistent DDD Model
+Evidence Graph -> Context Packs -> LLM Reasoning -> Finding Validation -> Finding Graph -> Human Review -> Persistent Domain Knowledge Model
 ```
 
 ## Azure

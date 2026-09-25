@@ -6,20 +6,22 @@ Azure deployment; public Git intake; native UI/progress; C#/.NET Framework struc
 
 V1's target knowledge model includes business capabilities, actors/use cases, strategic and tactical DDD, business rules/invariants/workflows, application/integration relationships, security policies, data ownership/consistency and decomposition-relevant coupling evidence.
 
+V1 must work when the analyzed source uses no DDD vocabulary or structure. The canonical Domain Knowledge Model exposes Recovered Domain Knowledge separately from Proposed DDD Design; neither view is a substitute for the later Decomposition Analysis stage.
+
 ## Engineering milestones inside V1
 
-1. Deployment/security feasibility spike.
-2. Repository Structure Scanner 0.1.
-3. WCF discovery.
-4. Relationship/persistence analysis.
-5. Evidence persistence/explorer.
-6. Context builder and structured reasoning runtime.
-7. Domain discovery.
-8. DDD modeling and validation.
-9. Human review/challenge workflow.
-10. Azure end-to-end deployment/hardening.
+0. Deployment/security feasibility spike (prerequisite).
+1. Repository Structure Scanner 0.1.
+2. WCF discovery.
+3. Relationship/persistence analysis.
+4. Evidence persistence/explorer.
+5. Context builder and structured reasoning runtime.
+6. Source-model-neutral recovery of domain knowledge.
+7. Recovered-DDD interpretation, Proposed DDD Design and validation.
+8. Human review/challenge workflow.
+9. Azure end-to-end deployment/hardening.
 
-Before Milestones 7–8, evidence extraction and reasoning contracts must be checked against the expanded Domain Knowledge Model so business behavior, security, ownership/consistency and coupling concepts are not lost merely because the initial scanner focused on structural evidence.
+Before the domain-discovery and DDD-modeling milestones, evidence extraction and reasoning contracts must be checked against the expanded Domain Knowledge Model so business behavior, security, ownership/consistency and coupling concepts are not lost merely because the initial scanner focused on structural evidence.
 
 ## Future analyzers
 
@@ -35,4 +37,4 @@ Add Linux workers; containerize where useful; introduce queues/worker pools for 
 
 Decomposition analysis operates over the persisted Domain Knowledge Model rather than being mixed into source evidence or DDD discovery.
 
-`Source Code → Evidence Graph → Domain Knowledge Model → Decomposition Analysis → Modernization Model → Target Architecture → Migration Planning`
+`Source Code → Evidence Graph → Semantic Findings → Domain Knowledge Model { Recovered Domain Knowledge + Proposed DDD Design } → Decomposition Analysis → Modernization Model → Target Architecture → Migration Planning`

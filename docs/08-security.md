@@ -1,10 +1,13 @@
 # Security
 
+> Scanner 0.1 controls and planned V1 controls are separated in the detailed
+> [Security Architecture](architecture/09-security-architecture.md).
+
 All analyzed repository content is untrusted.
 
 ## Analyzer isolation
 
-The analyzer worker receives only required source/snapshot data, has no repository credentials or unnecessary network access, uses a controlled temporary workspace and resource/time limits, and does not execute repository binaries/scripts/build targets by default.
+The planned analyzer worker receives only required source/snapshot data, has no repository credentials or unnecessary network access, uses a controlled temporary workspace and resource/time limits, and must not execute repository binaries, scripts, or build targets. Controlled semantic enrichment must not weaken this invariant.
 
 ## Intake
 
