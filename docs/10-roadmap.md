@@ -13,7 +13,7 @@ V1 must work when the analyzed source uses no DDD vocabulary or structure. The c
 0. Deployment/security feasibility spike (prerequisite).
 1. Repository Structure Scanner 0.1.
 2. WCF discovery.
-3. Relationship/persistence analysis.
+3. Relationship / persistence / behavioral evidence.
 4. Evidence persistence/explorer.
 5. Context builder and structured reasoning runtime.
 6. Source-model-neutral recovery of domain knowledge.
@@ -21,11 +21,23 @@ V1 must work when the analyzed source uses no DDD vocabulary or structure. The c
 8. Human review/challenge workflow.
 9. Azure end-to-end deployment/hardening.
 
-Before the domain-discovery and DDD-modeling milestones, evidence extraction and reasoning contracts must be checked against the expanded Domain Knowledge Model so business behavior, security, ownership/consistency and coupling concepts are not lost merely because the initial scanner focused on structural evidence.
+Milestone 3 clarifies the already approved V1 evidence requirement; it is not a new milestone or an
+expansion to generalized analyzer discovery. Its deterministic scope needs to address supported
+method/call relationships, mutations, conditions and comparisons, validation and exceptions,
+state transitions, transaction constructs, security checks, messages, side effects, scheduled
+operations, persistence/data ownership and coupling. Artifact-specific depth remains governed by
+the [V1 Analysis Coverage](design/01-v1-analysis-coverage.md) specification and explicit open
+decisions.
+
+Before the domain-discovery and DDD-modeling milestones, evidence extraction and reasoning contracts must be checked against the expanded Domain Knowledge Model so Domain Vocabulary, business behavior, security, ownership/consistency and coupling concepts are not lost merely because the initial scanner focused on structural evidence. The [Knowledge-to-Evidence Traceability](design/02-knowledge-evidence-traceability.md) matrix records current gaps; a V1 semantic output cannot be considered adequately supported merely because a later reasoning milestone exists.
+
+Quality gates and benchmark fixtures should mature alongside these milestones according to the
+[Quality and Evaluation Strategy](quality/01-evaluation-strategy.md). Numeric release thresholds
+remain open decisions and must not be inferred from milestone numbering.
 
 ## Future analyzers
 
-Pluggable analyzer families should add: ASP.NET MVC / MVC.NET; ASP.NET Web API; modern .NET APIs/apps; Java; Java EE/Jakarta enterprise applications; Spring Framework; Spring Boot; REST/OpenAPI; relational database/persistence frameworks; messaging/event-driven systems such as Kafka/RabbitMQ patterns; and additional stacks based on demand.
+Pluggable analyzer families should add: ASP.NET MVC / MVC.NET; ASP.NET Web API; modern .NET APIs/apps; Java; Java EE/Jakarta enterprise applications; Spring Framework; Spring Boot; REST/OpenAPI; standalone relational database/schema and broader persistence-framework analysis beyond the configured V1 code/config evidence; messaging/event-driven systems such as Kafka/RabbitMQ patterns; and additional stacks based on demand.
 
 Repository discovery should eventually detect technologies and build an Analysis Plan automatically.
 

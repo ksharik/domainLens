@@ -130,6 +130,28 @@ Prompt, response, source snippet, and chain-of-thought retention are not implied
 capture requires an explicit source-egress, privacy, retention, and access policy. DomainLens must
 not request or store hidden model reasoning as an operational requirement.
 
+### Quality and evaluation telemetry
+
+Product V1 must make quality evaluation possible without confusing metrics with source evidence.
+Run- and stage-scoped records should expose, where defined:
+
+- artifact and analyzer coverage with declared numerator, denominator, exclusions and versions;
+- counts of exact, partial, ambiguous and unresolved deterministic relationships;
+- provenance, graph-integrity and unsupported-artifact outcomes;
+- semantic validation failures such as invalid Evidence IDs, out-of-ContextPack references,
+  unsupported claims and semantic-view/classification violations;
+- counterevidence/alternative handling and human-review outcomes;
+- completion, partial-analysis and typed failure rates;
+- stage duration, model invocation and token/cost measurements; and
+- retry/repair and human-escalation frequency.
+
+These signals describe DomainLens performance and analysis quality. They are not Evidence Graph
+facts about the analyzed application. Semantic-quality evaluation must compare outputs with
+expert-reviewed expectations, not model self-confidence. The metric catalogue, benchmark corpus
+and non-negotiable gates are defined in the
+[Quality and Evaluation Strategy](../quality/01-evaluation-strategy.md); numeric product thresholds
+remain open until approved.
+
 ### Version lineage
 
 Durable results should retain versions that can change meaning or reproducibility:
@@ -224,6 +246,8 @@ values.
 - **OPEN DECISION — retries:** per-stage budgets, backoff, idempotency keys, poison-job handling, and operator repair workflow.
 - **OPEN DECISION — token and cost governance:** budgets, attribution, quotas, forecasts, and stop/degrade behavior.
 - **OPEN DECISION — sampling:** which traces/logs may be sampled and which audit/security events must never be sampled.
+- **OPEN DECISION — quality metrics:** measurement denominators, aggregation, benchmark result
+  retention, comparison compatibility and release-gate thresholds.
 
 ## Related architecture
 
@@ -233,6 +257,7 @@ values.
 - [Security Architecture](09-security-architecture.md)
 - [Deployment Architecture](10-deployment-architecture.md)
 - [Repository Structure Scanner 0.1](../11-milestone-1-repository-scanner.md)
+- [Quality and Evaluation Strategy](../quality/01-evaluation-strategy.md)
 
 Related accepted decisions: [ADR-002](../adr/002-modular-architecture-with-isolated-analyzer-worker.md),
 [ADR-004](../adr/004-separate-deterministic-evidence-from-ai-interpretation.md), and

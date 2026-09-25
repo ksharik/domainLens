@@ -189,7 +189,7 @@ flowchart TD
     Unsupported[Unsupported-repository diagnostics]
     Structural[Structural analyzers]
     WCF[WCF analyzer]
-    Relations[Relationship and persistence analyzers]
+    Relations[Relationship / persistence / behavioral evidence]
     Evidence[Validated Evidence Graph]
     Context[ContextPack construction]
     DiscoveryReasoning[Recovered domain-knowledge reasoning]
@@ -203,7 +203,7 @@ flowchart TD
         RecoveredKnowledge[Recovered Domain Knowledge]
         ProposedDesign[Proposed DDD Design]
     end
-    Results[Persistent results and result explorer]
+    Results[Persistent results and Results Explorer]
 
     User --> Intake --> Snapshot --> Qualification
     Qualification -->|unsupported| Unsupported
@@ -233,12 +233,17 @@ flowchart TD
   the known legacy C#/.NET Framework/WCF path and produce explicit unsupported or partial-coverage
   diagnostics. It does not inventory arbitrary technologies, choose among analyzer families, or
   generate an Analysis Plan.
-- **Configured analyzer invocation** uses the trusted, approved V1 structural, WCF, relationship,
-  and persistence capabilities. Their identities, versions, ordering, and bounded configuration
-  are retained with the run so retry or resume does not silently change tools.
+- **Configured analyzer invocation** uses the trusted, approved V1 structural and WCF analyzers plus
+  the Relationship / persistence / behavioral evidence capability, including supported security
+  evidence. Their identities, versions,
+  ordering, and bounded configuration are retained with the run so retry or resume does not
+  silently change tools.
 - **Structural and framework analysis** extend the Evidence Graph. The first
   workload adds legacy .NET Framework and WCF analysis; subsequent analyzers
   must use the same evidence/provenance contract.
+- **Coverage accounting** records the declared scope, analyzed and excluded artifacts, unsupported
+  constructs, resolution-quality distribution, diagnostics, and known limitations for every
+  analyzer stage. Coverage metadata describes the analysis and is not source evidence.
 - **Context construction** selects a bounded, versioned `ContextPack` through
   graph traversal and lexical retrieval. Repository content remains quoted
   data. Unrestricted repository access is not given to the model, and V1 does
@@ -249,8 +254,8 @@ flowchart TD
 - **Proposed DDD design** produces `Proposed` findings that recommend how recovered concepts could
   be represented with DDD. A proposal never asserts that the corresponding construct already
   exists in the source. Both reasoning activities produce semantic findings, never Evidence Graph
-  records, and retain supporting/counterevidence, assumptions, alternatives, confidence/support,
-  and unresolved questions.
+  records, and retain supporting/counterevidence, assumptions, alternatives, Support, Confidence,
+  Coverage, Completeness, linked Resolution Quality, and unresolved questions.
 - **Finding validation** follows each reasoning activity and applies schema validation,
   evidence-reference checks, semantic-view/classification rules, policy checks, and deterministic
   consistency rules before a finding can enter review or be supplied to downstream reasoning.
@@ -260,7 +265,8 @@ flowchart TD
 - **Knowledge materialization** projects validated findings and human decisions into one versioned
   Domain Knowledge Model with separate Recovered Domain Knowledge and Proposed DDD Design views.
   Every projected record retains its source findings, evidence, semantic view, classification,
-  assumptions, support/confidence, alternatives, review state, and revision history. Generated
+  assumptions, Support, Confidence, Coverage, Completeness, linked Resolution Quality, alternatives,
+  review state, and revision history. Generated
   Markdown is a view, not its canonical persistence format.
 
 ## PLANNED — orchestration state and resumability
@@ -321,6 +327,10 @@ match; otherwise a new analysis run or explicit revision is required.
 coverage gaps are visible in the ContextPack and findings. It must never be
 silently promoted to complete coverage. A fatal evidence-integrity error blocks
 reasoning for that artifact.
+
+The decision to proceed must keep Coverage, Support, Confidence, Completeness and deterministic
+Resolution Quality distinct. Thresholds for automatic continuation, review or rejection are
+**OPEN DECISIONS** governed by the [Quality and Evaluation Strategy](../quality/01-evaluation-strategy.md).
 
 ## Deterministic/model/human control flow
 

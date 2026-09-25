@@ -43,7 +43,7 @@ flowchart TB
 
     subgraph clients["Client experience — PLANNED V1"]
         web["Web UI"]
-        explorer["Result Explorer"]
+        explorer["Results Explorer"]
         review["Human Review workflow"]
     end
 
@@ -65,7 +65,7 @@ flowchart TB
         worker["Analyzer Worker host"]
         structural["Static structural analysis"]
         framework["Framework-specific analyzers"]
-        relationships["Relationship and persistence analysis"]
+        relationships["Relationship / persistence / behavioral evidence"]
     end
 
     user --> web
@@ -126,19 +126,19 @@ For exact current behavior and limitations, see
 | Pipeline Coordinator | Drives the allowlisted, durable workflow; records stage transitions; dispatches configured work; handles cancellation, retries, and review pauses. | Configured V1 analyzer profile/job, stage results, diagnostics, human decisions. | Does not infer domain meaning itself, dynamically generate agents, or ask a model to select analyzers. |
 | Repository Intake | Validates repository/ref requests and safely obtains public repository content under intake policy. | Public URL/ref; bounded repository content or rejection. | Does not trust repository metadata, redirects, documentation, or project files. |
 | Snapshot Service | Produces an identifiable, immutable manifest and snapshot boundary. | Captured repository bytes and revision metadata where safely available. | Does not treat a mutable checkout path as durable identity. |
-| Configured V1 Analyzer Profile | Identifies the approved legacy C#/.NET Framework/WCF structural, WCF, relationship, and persistence capabilities and their versions/configuration for reproducible dispatch. | Trusted deployed configuration; bounded worker job description. | Does not discover technologies or select across analyzer families from repository content. |
+| Configured V1 Analyzer Profile | Identifies the approved legacy C#/.NET Framework/WCF structural and WCF analyzers plus the Relationship / Persistence / Behavioral Evidence capability, including its supported security evidence, and records their versions/configuration for reproducible dispatch. | Trusted deployed configuration; bounded worker job description. | Does not discover technologies or select across analyzer families from repository content. |
 | Analyzer Worker | Hosts deterministic analysis against untrusted content within resource, filesystem, network, credential, and time limits. | Snapshot plus fixed configured .NET/WCF job; evidence contributions and diagnostics. | Does not perform domain interpretation, automatically choose analyzer families, or use model output as source facts. |
 | Static Analysis | Extracts language-level structure and relationships with explicit resolution quality. | Source/project artifacts; normalized evidence. | Does not infer business or DDD semantics from names alone and does not require DDD-named source constructs. |
 | Framework-specific analyzers | Extract framework facts such as WCF contracts, operations, implementations, endpoints, bindings, and hosting configuration. | Applicable snapshot artifacts; normalized evidence. | Does not add framework-specific types to the core evidence contract without normalization. |
-| Relationship / Persistence Analysis | Establishes deterministic behavior, calls, rules where mechanically identifiable, mutations, data relationships/access, transactions, workflows/state changes, operations, messages, security checks, dependencies, coupling, configuration, and other supported implementation facts. | Analyzer-supported code/configuration; normalized evidence. | Does not turn technical coupling, a class name, or a framework convention into a DDD conclusion. |
+| Relationship / Persistence / Behavioral Evidence | Establishes deterministic calls, conditions, comparisons, validation, exceptions, mutations, data relationships/access, transactions, workflows/state changes, operations, messages, security checks, external calls, side effects, scheduled behavior, dependencies, coupling, configuration, and other supported implementation facts. | Analyzer-supported code/configuration; normalized evidence and explicit coverage diagnostics. | Does not turn technical coupling, a class name, or a framework convention into a DDD conclusion, and cannot claim behavior hidden in unsupported artifacts. |
 | Evidence Kernel / Evidence Graph | Owns normalized evidence contracts, canonical identity/provenance rules, graph validation, and immutable evidence views. | Deterministic analyzer output; validated Evidence Graph. | Rejects model-authored Observed evidence and never stores proposals as source facts. |
 | Retrieval / Context Builder | Selects a minimal, provenance-preserving graph slice and bounded snippets for one reasoning objective. | Evidence Graph, existing findings, task recipe, budget. | Does not give the model unrestricted repository access and does not require vector retrieval in V1. |
 | Reasoning Runtime | Invokes fixed, versioned skills through a provider adapter and receives structured candidate results. | Sealed ContextPack and reasoning contract; untrusted structured output. | Does not parse the repository or authorize external actions. |
 | Reasoning Skills | Recover existing business/system meaning and, separately, infer or propose DDD representations using required evidence recipes, output schemas, support rubrics, and repair policy. | Versioned reasoning request; candidate findings/explanations tagged with semantic view and classification. | Are not source analyzers, arbitrary prompts, dynamic agents, or license to assume DDD from source names. |
 | Finding Validator / Finding Graph | Validates schema, evidence references, semantic view, classification, support, counterevidence, contradictions, and revision lineage. | Candidate findings and human decisions; validated finding revisions. | Never mutates the Evidence Graph, reclassifies an inference as Observed, or presents Proposed DDD Design as recovered knowledge. |
-| Domain Knowledge Model | Provides one persistent business/domain asset with separately queryable Recovered Domain Knowledge and Proposed DDD Design views. | Validated finding revisions; versioned concepts and relationships with view, classification, provenance, assumptions, support, alternatives, review state, and lineage. | Is not two independent stores, a Markdown report, or a container for decomposition recommendations. |
+| Domain Knowledge Model | Provides one persistent business/domain asset with separately queryable Recovered Domain Knowledge and Proposed DDD Design views. | Validated finding revisions; versioned concepts and relationships with view, classification, provenance, assumptions, Support, Confidence, Coverage, Completeness, linked Resolution Quality, alternatives, review state, and lineage. | Is not two independent stores, a Markdown report, or a container for decomposition recommendations. |
 | Human Review workflow | Records clarification, challenge, acceptance, rejection, and requests for re-analysis. | Reviewable findings and questions; auditable decisions and new revisions. | Acceptance changes review status, not epistemic classification. |
-| Result Explorer | Projects source, evidence, findings, recovered knowledge, and proposed DDD design with navigation between them. | Query models from persistence with visible semantic-view, classification, and review-state labels. | Does not become the canonical store or silently blend a proposal into an as-is view. |
+| Results Explorer | Projects source, coverage/limitations, evidence, findings, recovered knowledge, proposed DDD design, and review history with bidirectional navigation and “Why does DomainLens think this?” explanations. | Query models from persistence with visible semantic-view, classification, Support/Confidence/Coverage/Completeness, Resolution Quality, and review-state labels. | Does not become the canonical store, treat metrics as evidence, or silently blend a proposal into an as-is view. |
 | Persistence | Stores repository/snapshot/run state, evidence, findings/revisions, decisions, the single Domain Knowledge Model and its view discriminators, diagnostics, and producer versions behind application-owned ports. | Versioned durable records and mutable operational state. | Does not make generated prose the canonical model, erase semantic-view/classification distinctions, or couple the core directly to a database product. |
 
 ### FUTURE — generalized analyzer selection
@@ -177,7 +177,7 @@ versioned, or operationally mutable.
 - **OPEN DECISION — module contracts:** the exact projects/packages and public interfaces for planned V1 modules beyond the current three production projects.
 - **OPEN DECISION — co-deployment:** which trusted logical modules initially share a host process and what measured operational need would justify separation.
 - **OPEN DECISION — job transport:** how the Coordinator dispatches and resumes isolated analyzer work.
-- **OPEN DECISION — query boundary:** the API/query shape used by Result Explorer across Evidence, Finding, Recovered Domain Knowledge, and Proposed DDD Design views while preserving their mandatory distinction.
+- **OPEN DECISION — query boundary:** the API/query shape used by Results Explorer across Evidence, Finding, Recovered Domain Knowledge, and Proposed DDD Design views while preserving their mandatory distinction.
 - **OPEN DECISION — V1 analyzer-job contract:** the exact configured profile/job representation, analyzer versions, bounded qualification result, and unsupported-repository diagnostics for the known .NET/WCF path.
 - **FUTURE DECISION — generalized discovery and planning:** the technology-observation, automatic analyzer-selection, and generated Analysis Plan contracts are deferred until that future capability is approved.
 

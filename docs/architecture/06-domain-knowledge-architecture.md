@@ -61,8 +61,8 @@ not vocabulary, determine the view. A finding that combines an as-is claim and a
 must be split into atomic findings before projection.
 
 Both views retain source Finding IDs, supporting and contradictory Evidence IDs, classification,
-assumptions, confidence/support/coverage, alternatives, review state, producer versions, and
-revision history. Human acceptance changes review state only: Recovered Domain Knowledge remains
+assumptions, Support, Confidence, Coverage, Completeness, linked Resolution Quality, alternatives,
+review state, producer versions, and revision history. Human acceptance changes review state only: Recovered Domain Knowledge remains
 `Inferred`, and Proposed DDD Design remains `Proposed`.
 
 ### Example
@@ -89,8 +89,34 @@ classification make that difference explicit.
 - Business Capabilities
 - Actors
 - Use Cases
+- Domain Vocabulary / Ubiquitous Language
 - Domains
 - Subdomains classified as Core, Supporting, or Generic
+
+#### Domain Vocabulary / Ubiquitous Language
+
+Domain Vocabulary is a first-class DKM concept that can represent:
+
+- business terms and candidate definitions;
+- synonyms, aliases, abbreviations and acronyms;
+- source usages and evidence locations;
+- usage by business capability, bounded-context candidate or other semantic scope;
+- conflicting and context-specific meanings; and
+- terms whose meaning remains ambiguous or unresolved.
+
+Vocabulary follows the same evidence boundary as every semantic concept:
+
+```text
+Observed identifier, text, contract or usage
+    -> Inferred domain term and candidate meaning
+        -> possible bounded-context interpretation or Proposed normalized language
+```
+
+For example, `Account` may mean a login/user account in an identity context, a customer billing
+account in billing, and a financial account in banking. A stable difference in meaning, rules,
+ownership and workflows can support a bounded-context boundary; the repeated word alone cannot
+prove one. Comments and names may guide retrieval, but vocabulary meaning cannot be derived
+deterministically from identifiers alone.
 
 ### Strategic DDD
 
@@ -199,12 +225,19 @@ A logical DKM record needs enough information to remain reviewable and reproduci
 - semantic view (`RecoveredDomainKnowledge` or `ProposedDddDesign`);
 - source Finding IDs and their classification (`Inferred` or `Proposed` for model-produced claims);
 - supporting and contradictory Evidence IDs;
-- support, coverage, confidence, assumptions, alternatives, and known limitations;
+- Support, Coverage, Confidence, Completeness, assumptions, alternatives, known limitations, and
+  summaries of the linked evidence's deterministic Resolution Quality;
 - validation and human-review state, independent of classification;
 - producer, analyzer/model/skill/prompt versions as applicable;
 - creation, revision, supersession, and DKM-version lineage.
 
 The exact schema, cardinalities, and confidence rubric are **OPEN DECISIONS**. Whatever representation is selected must preserve atomic claims and provenance rather than collapsing several claims into an untraceable paragraph. Validation must enforce `RecoveredDomainKnowledge` with `Inferred` semantic findings and `ProposedDddDesign` with `Proposed` findings; Observed implementation facts remain in the Evidence Graph and are referenced rather than copied into a stronger semantic claim.
+
+Coverage, Support, Confidence, Completeness and Resolution Quality have distinct meanings defined
+by the [Quality and Evaluation Strategy](../quality/01-evaluation-strategy.md). High Support with
+low Coverage must remain distinguishable from medium Support with high Coverage, and model
+self-confidence is never proof. A missing finding or missing evidence within the analyzed scope is
+not evidence that a concept does not exist.
 
 ## Projection and revision
 
@@ -256,7 +289,7 @@ See [Evidence Architecture](05-evidence-architecture.md) for the immutable factu
 ## Open decisions
 
 - Concrete concept/relationship schema, cardinalities, naming/identity rules, and view-discriminator representation.
-- Confidence, support, coverage, and completeness semantics across knowledge categories.
+- Representation, rubrics, aggregation, and calibration for Confidence, Support, Coverage, and Completeness across knowledge categories.
 - Projection eligibility, cross-view relationship, and conflict/reconciliation rules.
 - DKM version lineage and cross-run/cross-snapshot logical identity.
 - Human-review requirements by claim type and consequence.

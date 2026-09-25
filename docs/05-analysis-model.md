@@ -32,7 +32,31 @@ Review status is independent of classification. Human acceptance of an inference
 
 Source-backed evidence records snapshot, relative file, content hash, source span, extractor/rule/version and resolution (exact/partial/ambiguous/unresolved).
 
-Findings preserve atomic claim, concept type, classification, subject nodes, supporting/counter evidence, assumptions, justification, support/coverage, alternatives, unresolved questions, producer/version, validation/review status and revision history.
+Findings preserve atomic claim, concept type, classification, subject nodes, supporting/counter evidence, assumptions, justification, Support, Confidence, Coverage, Completeness, linked Resolution Quality, alternatives, unresolved questions, producer/version, validation/review status and revision history.
+
+## Analysis quality dimensions
+
+The following dimensions are related but are not synonyms and must not be collapsed into a single
+score:
+
+| Dimension | Intended meaning |
+|---|---|
+| **Coverage** | How much of the relevant source, artifact and evidence space was actually analyzed for a declared scope and dimension. The numerator, denominator, exclusions and producer versions must be explainable. |
+| **Support** | How strongly the available evidence supports one atomic semantic claim, including the relevance and independence of supporting and counterevidence. |
+| **Confidence** | A calibrated interpretation of support, contradictions, evidence quality, coverage and model uncertainty. Model self-confidence alone is not authoritative. |
+| **Completeness** | How complete DomainLens believes a requested analysis dimension is, given declared scope, expected evidence and known limitations. It is not the same as run completion. |
+| **Resolution Quality** | The deterministic certainty of a source observation or relationship: `Exact`, `Partial`, `Ambiguous` or `Unresolved`. It does not express semantic confidence. |
+
+For example, an Aggregate Root candidate might have strong Support because all available mutation
+and transaction evidence points to `Customer`, while Coverage is only 72% because a referenced
+assembly, stored procedures and dynamic dispatch are unavailable. That differs materially from
+medium Support with high Coverage. The percentage and label are illustrative, not approved V1
+thresholds; the exact measurement and scoring rubrics remain open.
+
+“No matching evidence was found within the analyzed scope” is a bounded analysis result. It must
+never be upgraded to “the concept or behavior does not exist.” See the
+[Quality and Evaluation Strategy](quality/01-evaluation-strategy.md) for evaluation gates and
+benchmark design.
 
 ## Domain Knowledge Model
 
@@ -43,12 +67,14 @@ The DKM is one canonical asset with two semantic views:
 - **Recovered Domain Knowledge** contains `Inferred` reconstructions of the existing system and business, linked to `Observed` evidence. It may recover a DDD pattern that the implementation actually appears to enforce, but does not treat a matching type name as proof.
 - **Proposed DDD Design** contains `Proposed` DDD representations that DomainLens recommends even when no corresponding construct exists in the source system.
 
-Every projected record retains its view, source Finding IDs, classification, evidence, assumptions, support/confidence, alternatives, review state, and revision history. A claim that mixes recovered and proposed meaning must be split into atomic findings before projection.
+Every projected record retains its view, source Finding IDs, classification, evidence, assumptions, Support, Confidence, Coverage, Completeness, linked Resolution Quality, alternatives, review state, and revision history. A claim that mixes recovered and proposed meaning must be split into atomic findings before projection.
 
 ### Business Architecture
 - Business Capabilities
 - Actors
 - Use Cases
+- Domain Vocabulary / Ubiquitous Language: terms, candidate definitions, synonyms, aliases,
+  abbreviations, acronyms, context-specific meanings, conflicts and ambiguity
 - Domains
 - Subdomains: Core, Supporting, Generic
 

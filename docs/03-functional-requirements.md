@@ -24,6 +24,19 @@ Domain reconstruction shall reason from supported observations of behavior, rule
 
 Business capability discovery shall provide a business-oriented organizing layer above implementation structure. Package, namespace and project boundaries must not automatically be treated as business boundaries.
 
+## Domain vocabulary
+
+DomainLens shall represent Domain Vocabulary / Ubiquitous Language as evidence-backed domain
+knowledge. It shall support business terms, candidate definitions, synonyms, aliases,
+abbreviations, acronyms, ambiguous usages, conflicting meanings and context-specific meanings,
+with links to observed source locations and usages.
+
+Identifiers, comments, labels, operation names, contracts, configuration and messages may provide
+Observed text or usage evidence. A candidate business definition is `Inferred`; a recommended
+normalized term is `Proposed`. Neither may be created as Observed evidence by a model. Vocabulary
+conflicts may contribute to a bounded-context finding when combined with behavior, ownership,
+rules, workflows and integration evidence; they do not establish a context boundary alone.
+
 ## Behavioral analysis
 
 DomainLens shall be capable of representing business rules, invariants, policies, workflows/business processes, state transitions/lifecycles, decisions, preconditions/postconditions and validation rules.
@@ -56,14 +69,31 @@ Proposed DDD Design is also not Decomposition Analysis. Reverse DDD asks what do
 
 The UI shall display stage/progress/diagnostics. The pipeline may pause when user clarification materially affects DDD interpretation. Responses are recorded and incorporated into subsequent reasoning. Findings may be challenged and re-analyzed without destroying revision history.
 
+The user shall be able to distinguish analysis completion from analysis coverage. Coverage,
+Support, Confidence, Completeness and deterministic Resolution Quality shall remain separately
+represented, with known limitations and counterevidence. “Not found within analyzed scope” must
+not be presented as “does not exist.” Numeric quality thresholds remain open until approved
+through evaluation.
+
 ## Results and persistence
 
 Users shall explore As-Is architecture/evidence and the Domain Knowledge Model, navigating findings to supporting source locations.
 
+Every semantic finding shall support an explanation equivalent to “Why does DomainLens think
+this?” showing its semantic view, classification, supporting and counterevidence, assumptions,
+Support, Confidence, Coverage, Completeness, linked Resolution Quality, limitations, alternatives,
+review status and revision lineage.
+Proposed DDD Design shall remain visibly and semantically distinct from Recovered Domain
+Knowledge in interactive views, diagrams and exports.
+
 Persist repository/snapshot metadata, runs, evidence, findings, domain-knowledge concepts/relationships, user decisions, revisions and diagnostics. Persistence shall be abstracted from the database engine.
 
-The Domain Knowledge Model shall remain one canonical persistent asset with separately queryable and visibly labeled **Recovered Domain Knowledge** and **Proposed DDD Design** views. Records in both views shall retain supporting and contradictory evidence, source findings, classification, assumptions, confidence/support, alternatives, review state and revision history. Presentation and persistence must not imply that a Proposed DDD construct existed in the source system.
+The Domain Knowledge Model shall remain one canonical persistent asset with separately queryable and visibly labeled **Recovered Domain Knowledge** and **Proposed DDD Design** views. Records in both views shall retain supporting and contradictory evidence, source findings, classification, assumptions, Support, Confidence, Coverage, Completeness, linked Resolution Quality, alternatives, review state and revision history. Presentation and persistence must not imply that a Proposed DDD construct existed in the source system.
 
 Human acceptance, rejection or challenge shall change review state or create a revision without changing epistemic classification. In particular, an accepted `Proposed` finding remains `Proposed`, and an accepted `Inferred` finding does not become `Observed`.
 
 Persisted Domain Knowledge Models must be reusable by decomposition and future modernization workflows without reparsing generated prose.
+
+See the [Results Explorer specification](product/01-results-explorer.md) and
+[Quality and Evaluation Strategy](quality/01-evaluation-strategy.md) for the product-facing and
+evaluation contracts. Those documents do not select a physical UI or persistence schema.

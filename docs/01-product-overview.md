@@ -12,11 +12,13 @@ Reverse DDD therefore answers two related but distinct questions: **what domain 
 
 ## V1 experience
 
-The user opens the DomainLens web application, supplies a public Git repository URL and starts analysis. DomainLens validates and snapshots the repository, inventories technologies, performs deterministic and WCF-specific analysis, builds an Evidence Graph, prepares bounded context packs, performs AI-assisted domain discovery and DDD modeling, validates findings, requests human clarification when needed, persists the analysis and Domain Knowledge Model, and presents an interactive results workspace.
+The user opens the DomainLens web application, supplies a public Git repository URL and starts analysis. DomainLens validates and snapshots the repository, qualifies it for the configured legacy C#/.NET Framework/WCF analyzer path, performs deterministic structural, framework, relationship, persistence and behavioral analysis, builds an Evidence Graph, prepares bounded context packs, performs AI-assisted domain discovery and DDD modeling, validates findings, requests human clarification when needed, persists the analysis and Domain Knowledge Model, and presents an interactive results workspace. Generalized automatic technology discovery and generated Analysis Plans remain future capabilities.
 
 ## Domain Knowledge Model
 
 Reverse DDD is not limited to identifying tactical DDD objects. DomainLens shall reconstruct a broader, evidence-backed Domain Knowledge Model covering business architecture, strategic and tactical DDD, business behavior, application/integration, security, data/consistency, and architectural evidence.
+
+Business architecture includes a Domain Vocabulary: business terms, candidate definitions, synonyms, aliases, abbreviations, acronyms, context-specific meanings, conflicting usages and ambiguity. Source identifiers and text are Observed evidence; their business meaning and any boundary interpretation remain Inferred or Proposed.
 
 The model is intended to explain both **what the business concepts are** and **how the existing implementation realizes, constrains and couples them**. This richer representation is the foundation for later decomposition and modernization analysis.
 
@@ -25,7 +27,7 @@ The Domain Knowledge Model remains one canonical asset with two explicit semanti
 - **Recovered Domain Knowledge** — evidence-backed reconstruction of the existing system and business.
 - **Proposed DDD Design** — recommended DDD representations that may not exist in the source system.
 
-Both views preserve source findings, supporting and contradictory evidence, epistemic classification, assumptions, confidence/support, alternatives, review state, and revision history. Accepting a proposal changes its review state; it remains `Proposed`.
+Both views preserve source findings, supporting and contradictory evidence, epistemic classification, assumptions, Support, Confidence, Coverage, Completeness, linked Resolution Quality, alternatives, review state, and revision history. Accepting a proposal changes its review state; it remains `Proposed`.
 
 ## Durable product asset
 
@@ -38,3 +40,5 @@ The intended progression is:
 ## Clients
 
 The native web application is the primary V1 client. DomainLens exposes APIs so future ChatGPT Sites/Apps and other clients can use the platform without constraining core capabilities.
+
+The planned [Results Explorer](product/01-results-explorer.md) makes coverage, limitations, evidence, semantic view, classification, uncertainty and review history visible. Quality is defined by the [evaluation strategy](quality/01-evaluation-strategy.md), not by model self-confidence.

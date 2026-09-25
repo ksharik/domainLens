@@ -17,7 +17,13 @@ Analyzers do not search for DDD-named types as a prerequisite. They establish im
 
 ## AI reasoning responsibilities
 
-AI reasoning may recover evidence-backed knowledge about business capabilities; actors/use cases; domains/subdomains; behavior; business rules/invariants/policies; workflows/state transitions; application/integration relationships; security-policy interpretations; data ownership/consistency boundaries; and coupling. Separately, it may infer DDD structures that appear to exist or propose useful DDD representations such as contexts, aggregates, roots, entities, value objects, domain services, repositories, factories, commands, events, and handlers.
+AI reasoning may recover evidence-backed knowledge about business capabilities; actors/use cases;
+Domain Vocabulary and context-specific meanings; domains/subdomains; behavior; business
+rules/invariants/policies; workflows/state transitions; application/integration relationships;
+security-policy interpretations; data ownership/consistency boundaries; and coupling. Separately,
+it may infer DDD structures that appear to exist or propose useful DDD representations such as
+contexts, aggregates, roots, entities, value objects, domain services, repositories, factories,
+commands, events, and handlers.
 
 AI reasoning must not convert inferred business meaning into deterministic evidence or present a Proposed DDD Design as a recovered feature of the source system.
 
@@ -31,5 +37,11 @@ AI reasoning must not convert inferred business meaning into deterministic evide
 Skill contracts should evolve to support the expanded Domain Knowledge Model while remaining evidence-bounded.
 
 A skill is a trusted/versioned reasoning contract defining purpose, evidence requirements, context recipe, instructions, structured output, support rubric and validation/retry policy.
+
+Each skill's evidence requirements must align with the
+[knowledge-to-evidence traceability](design/02-knowledge-evidence-traceability.md) contract. Its
+output must keep Coverage, Support, Confidence, Completeness and deterministic Resolution Quality
+distinct according to the [evaluation strategy](quality/01-evaluation-strategy.md); model
+self-confidence cannot compensate for missing analyzer evidence.
 
 MCP, A2A and richer multi-agent coordination are roadmap capabilities, not V1 prerequisites.

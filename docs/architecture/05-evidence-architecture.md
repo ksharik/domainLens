@@ -225,6 +225,30 @@ Exact does not mean globally or behaviorally complete. An exact syntax
 observation says the supported source construct was read exactly; it does not
 assert runtime behavior, semantic compilation success, or business meaning.
 
+### Coverage is not resolution or evidence
+
+Resolution Quality describes one deterministic observation or relationship. Coverage describes
+how much of a declared artifact/evidence space an analyzer could examine. A run can therefore
+contain exact observations while having low coverage, or broad coverage containing ambiguous and
+unresolved relationships.
+
+Coverage measurements, attempted-unit counts and quality metrics describe DomainLens analysis;
+they are not Observed facts about the analyzed business and must not be inserted into the Evidence
+Graph as domain evidence. Analyzer diagnostics and versioned analysis metadata must retain enough
+information to explain:
+
+- the declared scope and analysis dimension;
+- eligible, attempted, analyzed, excluded, unsupported and failed units;
+- the measurement basis and analyzer/rule versions;
+- unknown or unavailable denominator material; and
+- the effect of omissions on downstream reasoning.
+
+Artifact coverage, parser/analyzer coverage, semantic-finding Support, calibrated Confidence,
+analysis Completeness and Resolution Quality remain separate dimensions. Their conceptual
+definitions and evaluation rules are specified in the
+[Quality and Evaluation Strategy](../quality/01-evaluation-strategy.md). Physical records and
+numeric thresholds remain **OPEN DECISIONS**.
+
 ### Evidence nodes
 
 An `EvidenceNode` contains canonical and logical identities, an analyzer-owned
@@ -410,7 +434,7 @@ A structured finding should minimally retain:
 - `Inferred` or `Proposed` classification;
 - a typed concept and structured relationships;
 - supporting evidence IDs and counterevidence IDs;
-- reasoning summary, assumptions, alternatives, confidence, support, coverage, and stated limitations;
+- reasoning summary, assumptions, alternatives, Confidence, Support, Coverage, Completeness, linked deterministic Resolution Quality summaries, and stated limitations;
 - unresolved questions;
 - ContextPack identity;
 - analyzer, model, prompt, and skill versions; and

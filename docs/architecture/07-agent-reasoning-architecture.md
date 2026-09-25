@@ -39,7 +39,9 @@ The Pipeline Coordinator follows application-owned state and an allowlist of cap
 
 The initial skill set is:
 
-- `domain-discovery` — reconstructs evidence-backed business/system knowledge without assuming a source design style and emits `Inferred` findings for the Recovered Domain Knowledge view.
+- `domain-discovery` — reconstructs evidence-backed business/system knowledge, including Domain
+  Vocabulary and context-specific meanings, without assuming a source design style and emits
+  `Inferred` findings for the Recovered Domain Knowledge view.
 - `ddd-modeling` — interprets existing DDD behavior when support exists and proposes strategic or tactical DDD representations over selected evidence and prior valid findings. Recommendations emit `Proposed` findings for the Proposed DDD Design view.
 - `explain-finding` — reconstructs a concise explanation from a finding, its evidence/counterevidence, assumptions, and limitations.
 - `semantic-evidence-review` — tests a semantic claim for support, contradiction, missing coverage, and alternative interpretations.
@@ -55,6 +57,8 @@ A ContextPack is the sealed, versioned input envelope for one reasoning objectiv
 - selected Evidence IDs, graph slices, source snippets/spans, content hashes, and resolution quality;
 - relevant accepted or unresolved finding revisions;
 - evidence about behavior, rules/invariants, data/mutations/transactions, workflows/state, operations, persistence, messages/integrations, security, dependencies, and coupling appropriate to the objective;
+- identifier/text usages and semantic scopes relevant to Domain Vocabulary reasoning, without
+  treating names or comments as deterministic business definitions;
 - explicit counterevidence, conflicting paths, diagnostics, and coverage limitations;
 - retrieval recipe, filters, traversal depth, ranking/selection reasons, and excluded material;
 - summaries with links to their source evidence;
@@ -95,7 +99,9 @@ AnalysisResult
     classification: Inferred | Proposed
     concept/relationship type and subjects
     supporting and counter evidence references
-    reasoning, assumptions, alternatives, confidence/support/coverage
+    reasoning, assumptions, alternatives
+    support, confidence, coverage, completeness
+    linked evidence resolution-quality summary
     contradictions and unresolved questions
   task limitations
   producer/model/skill/prompt versions
@@ -108,6 +114,25 @@ The exact wire schema and scoring rubric are **OPEN DECISIONS**. The invariants 
 - a DDD recommendation uses `ProposedDddDesign` and remains `Proposed`, including after human acceptance;
 - a claim that both reconstructs an as-is condition and recommends a design must be split into atomic findings; and
 - every source-backed assertion must reference evidence present in the sealed pack.
+
+### Reasoning quality dimensions
+
+Reasoning and validation must keep the following dimensions separate:
+
+- **Coverage** describes how much relevant source/artifact/evidence space the analysis could
+  examine for the task.
+- **Support** describes how strongly the available evidence supports one atomic claim.
+- **Confidence** is calibrated from support, counterevidence, evidence quality, coverage and model
+  uncertainty; a model's self-reported confidence is not authoritative.
+- **Completeness** describes how complete the requested reasoning dimension is believed to be under
+  the declared scope and known limitations.
+- **Resolution Quality** (`Exact`, `Partial`, `Ambiguous`, `Unresolved`) belongs to deterministic
+  evidence and relationships; it is not semantic confidence.
+
+High Support with low Coverage and medium Support with high Coverage must remain distinguishable.
+“Not found within analyzed scope” cannot be converted to “does not exist.” Measurement methods,
+scales and thresholds are **OPEN DECISIONS** documented in the
+[Quality and Evaluation Strategy](../quality/01-evaluation-strategy.md).
 
 ## Invocation, validation, and review
 
@@ -155,6 +180,10 @@ Validation is deterministic wherever possible:
 - enforce allowed concept/relationship types and policy constraints;
 - append a new revision rather than overwrite reviewed history.
 
+The non-negotiable gates also prohibit treating coverage metrics as source evidence, using model
+confidence to repair missing deterministic evidence, or presenting a Proposed DDD finding as
+Recovered Domain Knowledge.
+
 Repair is bounded and auditable. A failed repair budget leads to a failed/rejected stage or human clarification, not silent acceptance. The precise retry categories, counts, and support thresholds are **OPEN DECISIONS**.
 
 ## Human challenge and re-analysis
@@ -173,7 +202,8 @@ Source-code egress, provider retention, deployment region, redaction, and consen
 
 - Model provider, deployment/region, retention, source-egress, and provider-version policy.
 - Structured Finding and ContextPack schemas, semantic-view encoding, IDs, versioning, and canonical hashing.
-- Support/confidence/coverage rubric and thresholds for validation or human escalation.
+- Coverage/Support/Confidence/Completeness rubric and thresholds for validation or human
+  escalation, including aggregation of linked Resolution Quality.
 - Repairable-error categories, retry budget, timeout, and fallback behavior.
 - ContextPack token budgets, graph recipes, summarization rules, and persistence lifetime.
 - Counterevidence search recipes and evaluation datasets.

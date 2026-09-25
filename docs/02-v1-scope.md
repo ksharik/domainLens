@@ -11,7 +11,7 @@
 - WCF contracts, operations, implementations, data/message contracts, endpoints, bindings and hosting configuration.
 - Static relationships and Evidence Graph.
 - Predefined AI-assisted domain discovery and DDD modeling.
-- Business capability, actor, use-case, business-rule, invariant, workflow/state-transition, security-policy, data-ownership and coupling discovery where supported by analyzed evidence.
+- Business capability, actor, use-case, Domain Vocabulary, business-rule, invariant, workflow/state-transition, security-policy, data-ownership and coupling discovery where supported by analyzed evidence.
 - Finding validation and Finding Graph.
 - Human-in-the-loop clarification, challenge and review.
 - Visible pipeline status/diagnostics.
@@ -30,8 +30,17 @@ The single canonical Domain Knowledge Model shall expose **Recovered Domain Know
 - Business capabilities.
 - Actors.
 - Use cases.
+- Domain Vocabulary / Ubiquitous Language: business terms, candidate definitions, synonyms,
+  aliases, abbreviations, acronyms, context-specific meanings, conflicting meanings, ambiguous
+  usages and evidence-linked source locations.
 - Domains and subdomains.
 - Core / Supporting / Generic subdomain classification.
+
+Vocabulary is semantic domain knowledge, not a deterministic restatement of identifiers. Source
+names, labels, comments, contracts and messages may be Observed evidence; candidate meaning is
+`Inferred`, and a recommended normalized language is `Proposed`. The same term used with materially
+different meanings may support a bounded-context interpretation, but vocabulary conflict alone is
+not proof of a boundary.
 
 ### Strategic DDD
 - Bounded contexts.
@@ -90,7 +99,12 @@ The single canonical Domain Knowledge Model shall expose **Recovered Domain Know
 - Caching.
 - Transaction-consistency characteristics.
 
-DomainLens shall preserve the distinction between observed implementation evidence and inferred/proposed domain meaning. Each DKM view shall retain source findings, evidence, classification, assumptions, confidence/support, alternatives, review state, and revision history. Human acceptance changes review state only: an accepted Proposed DDD concept remains `Proposed`. Absence of evidence in analyzed artifacts must not be represented as proof that a business rule, security policy or other concept does not exist.
+DomainLens shall preserve the distinction between observed implementation evidence and inferred/proposed domain meaning. Each DKM view shall retain source findings, evidence, classification, assumptions, Support, Confidence, Coverage, Completeness, linked Resolution Quality, alternatives, review state, and revision history. Human acceptance changes review state only: an accepted Proposed DDD concept remains `Proposed`. Absence of evidence in analyzed artifacts must not be represented as proof that a business rule, security policy or other concept does not exist.
+
+Coverage, Support, Confidence, Completeness and deterministic Resolution Quality are separate
+analysis dimensions. Their definitions and thresholds must remain visible rather than being
+collapsed into a single score. No Product V1 threshold is approved merely by listing a concept in
+scope.
 
 ## Excluded from V1
 
