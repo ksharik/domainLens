@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+  </PropertyGroup>
+
+  <!--
+    This is deliberately hostile repository-controlled build logic. DomainLens
+    must inspect this XML as data and must never execute this target.
+  -->
+  <Target Name="RepositoryControlledPayload" BeforeTargets="Build">
+    <Exec Command="echo DOMAINLENS_UNSAFE_TARGET_EXECUTED &gt; &quot;$(MSBuildProjectDirectory)\SHOULD_NOT_EXIST.marker&quot;" />
+  </Target>
+</Project>

@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [development]
+  push:
+    branches: [development, main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore DomainLens
+        run: dotnet restore DomainLens.sln
+
+      - name: Build DomainLens
+        run: dotnet build DomainLens.sln --configuration Release --no-restore
+
+      - name: Test DomainLens
+        run: dotnet test DomainLens.sln --configuration Release --no-build --logger "trx;LogFileName=tests.trx"

@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+
+  <Import Project="Shared.props" />
+
+  <ItemGroup>
+    <Reference Include="Contoso.Shared">
+      <HintPath>lib\first\Contoso.Shared.dll</HintPath>
+    </Reference>
+    <Reference Include="Contoso.Shared">
+      <HintPath>lib\second\Contoso.Shared.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <Choose>
+    <When Condition="'$(UseOptional)' == 'true'">
+      <PropertyGroup>
+        <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+        <RootNamespace>Conditional.Namespace</RootNamespace>
+      </PropertyGroup>
+      <ItemGroup>
+        <ProjectReference Include="Optional\Optional.csproj" />
+      </ItemGroup>
+    </When>
+  </Choose>
+</Project>
