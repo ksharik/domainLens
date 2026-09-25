@@ -76,7 +76,7 @@ deployed services.
 
 | Actor or system | Status | Interaction with DomainLens | Boundary constraints |
 |---|---|---|---|
-| DomainLens User | PLANNED V1 | Supplies a public repository URL and ref, starts an analysis, monitors progress, answers clarification questions, explores evidence and findings, and accepts, rejects, or challenges interpretations. | Human review changes finding/review state; it never rewrites deterministic source evidence or promotes an inference to an observed fact. |
+| DomainLens User | PLANNED V1 | Supplies a public repository URL and ref, starts an analysis, monitors progress, supplies domain context, explores evidence and findings, and accepts, rejects, or challenges interpretations. | A supplied domain statement becomes separately versioned Human Context when used in reasoning; a review action changes finding/review state. Neither rewrites deterministic source evidence or promotes an inference to an observed fact. |
 | Local CLI operator | CURRENT | Supplies a local repository path and optional solution, runs `scan`, and uses `inspect` against the resulting analysis artifact. | The CLI has no remote Git intake, web experience, persistence service, model invocation, or DDD reasoning. |
 | Public Git repository provider | PLANNED V1 | Supplies repository content for a validated public URL and selected branch, tag, or commit. | The URL, redirects, resolved addresses, size, and content are untrusted. Repository files are data, never instructions. |
 | LLM/model provider | PLANNED V1 | Receives a bounded, task-specific ContextPack and returns a structured candidate analysis result. | The model has no unrestricted repository access. Its output is untrusted until schema, evidence, and policy validation succeeds, and it cannot create Observed evidence. |
@@ -97,11 +97,13 @@ define the platform's architectural boundary.
 
 ### Interpret and validate
 
-DomainLens constructs a bounded ContextPack from validated evidence and invokes an approved
-reasoning skill. Candidate findings remain separate from the Evidence Graph and retain supporting
-and counterevidence. Recovered claims about the existing system are tagged separately from proposed
-DDD representations that may not exist in that system. Deterministic validation and, where needed,
-human review precede projection into the persistent Domain Knowledge Model.
+DomainLens constructs a bounded ContextPack from validated evidence, prior findings,
+counterevidence, limitations, and any explicitly referenced Human Context, then invokes an approved
+reasoning skill. Each input retains its own type and provenance. Candidate findings remain separate
+from the Evidence Graph and retain distinct Evidence IDs and Human Context IDs where used. Recovered
+claims about the existing system are tagged separately from proposed DDD representations that may
+not exist in that system. Deterministic validation and, where needed, human review precede projection
+into the persistent Domain Knowledge Model.
 
 ### Explore and challenge
 
@@ -121,7 +123,8 @@ like an as-is source-system construct.
 
 - Repository paths, source code, project files, comments, documentation, and repository-local agent instructions are untrusted data.
 - Only trusted deterministic application code may establish Observed evidence.
-- Model responses and human assertions may contribute to Inferred or Proposed findings and review state, but not Observed source facts. Human acceptance does not change an `Inferred` or `Proposed` classification.
+- A human-supplied domain assertion may contribute to an `Inferred` or `Proposed` finding only as a separately identifiable, versioned Human Context record; it is not Evidence Graph evidence or an `Observed` fact.
+- Human acceptance, rejection, and challenge are review actions distinct from Human Context. They may change review state or cause a revision but do not change an `Inferred` or `Proposed` classification.
 - External actions require deterministic authorization and validation; model output alone is not authority.
 - Source-code egress and retention must be explicitly governed before model or storage integration is enabled.
 - The logical “DomainLens User” does not imply an authenticated user or tenant. Access decisions must follow the approved identity/ownership policy; anonymous operation is allowed only if that future policy explicitly permits it.

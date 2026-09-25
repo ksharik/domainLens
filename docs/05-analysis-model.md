@@ -28,11 +28,27 @@ Findings must be source-model neutral. A class or member named `AggregateRoot`, 
 
 Review status is independent of classification. Human acceptance of an inference does not convert it into an observed fact, and acceptance of a proposal does not convert it into an inference or an observed fact.
 
+## Human Context
+
+An explicitly human-supplied domain statement used in reasoning is retained as a durable,
+versioned **Human Context record**. This is a working term: `Human Context` versus `Domain
+Assertion`, the physical schema, validation/status vocabulary, and whether such a record may support
+a finding without repository evidence are **OPEN DECISIONS**.
+
+Human Context is not part of the Evidence Graph, is not deterministic evidence, and does not add a
+fourth epistemic classification. It is also distinct from the model's interpretation and from a
+human review action. A record conceptually carries a context ID, analysis/repository/snapshot scope,
+the eliciting question or request, supplied statement, timestamp, revision/supersession lineage,
+applicable concepts or findings, optional validation/status, and an actor/session/principal reference
+only when available under the eventually approved identity model. A sealed ContextPack and any
+finding that uses the statement cite the exact record revision. Corrections create superseding
+revisions rather than rewriting prior history.
+
 ## Provenance
 
 Source-backed evidence records snapshot, relative file, content hash, source span, extractor/rule/version and resolution (exact/partial/ambiguous/unresolved).
 
-Findings preserve atomic claim, concept type, classification, subject nodes, supporting/counter evidence, assumptions, justification, Support, Confidence, Coverage, Completeness, linked Resolution Quality, alternatives, unresolved questions, producer/version, validation/review status and revision history.
+Findings preserve atomic claim, concept type, classification, subject nodes, supporting/counter Evidence IDs, separate supporting/contradictory Human Context IDs where used, assumptions, justification, Support, Coverage, Completeness, linked Resolution Quality, alternatives, unresolved questions, producer/version, validation/review status and revision history. A calibrated Confidence value is optional and may be populated only after the readiness and product-exposure conditions below are met.
 
 ## Analysis quality dimensions
 
@@ -43,9 +59,13 @@ score:
 |---|---|
 | **Coverage** | How much of the relevant source, artifact and evidence space was actually analyzed for a declared scope and dimension. The numerator, denominator, exclusions and producer versions must be explainable. |
 | **Support** | How strongly the available evidence supports one atomic semantic claim, including the relevance and independence of supporting and counterevidence. |
-| **Confidence** | A calibrated interpretation of support, contradictions, evidence quality, coverage and model uncertainty. Model self-confidence alone is not authoritative. |
+| **Confidence** | A calibrated interpretation of support, contradictions, evidence quality, coverage and model uncertainty. It is not available until an applicable versioned calibration method and expert-reviewed corpus exist, calibration has been evaluated, and product exposure is approved. Raw model self-confidence is never Confidence. |
 | **Completeness** | How complete DomainLens believes a requested analysis dimension is, given declared scope, expected evidence and known limitations. It is not the same as run completion. |
 | **Resolution Quality** | The deterministic certainty of a source observation or relationship: `Exact`, `Partial`, `Ambiguous` or `Unresolved`. It does not express semantic confidence. |
+
+Confidence must not be synthesized from Support or populated with an uncalibrated model score.
+Until its gate is met, the eventual schema may mark it unavailable/not calibrated or omit it from
+user-facing presentation while preserving the conceptual distinction among quality dimensions.
 
 For example, an Aggregate Root candidate might have strong Support because all available mutation
 and transaction evidence points to `Customer`, while Coverage is only 72% because a referenced
@@ -67,7 +87,7 @@ The DKM is one canonical asset with two semantic views:
 - **Recovered Domain Knowledge** contains `Inferred` reconstructions of the existing system and business, linked to `Observed` evidence. It may recover a DDD pattern that the implementation actually appears to enforce, but does not treat a matching type name as proof.
 - **Proposed DDD Design** contains `Proposed` DDD representations that DomainLens recommends even when no corresponding construct exists in the source system.
 
-Every projected record retains its view, source Finding IDs, classification, evidence, assumptions, Support, Confidence, Coverage, Completeness, linked Resolution Quality, alternatives, review state, and revision history. A claim that mixes recovered and proposed meaning must be split into atomic findings before projection.
+Every projected record retains its view, source Finding IDs, classification, Evidence IDs, separate Human Context IDs where used, assumptions, Support, Coverage, Completeness, linked Resolution Quality, alternatives, review state, and revision history. It includes calibrated Confidence only when the readiness and exposure gate has been met. A claim that mixes recovered and proposed meaning must be split into atomic findings before projection.
 
 ### Business Architecture
 - Business Capabilities

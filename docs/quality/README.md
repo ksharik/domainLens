@@ -37,8 +37,11 @@ Related approved architecture:
 
 - Quality metrics describe analyzer, reasoning, or operational performance;
   they are not Evidence Graph observations about the analyzed system.
-- Coverage, support, confidence, completeness, and resolution quality answer
-  different questions and must be stored and presented separately.
+- Coverage, support, Confidence, completeness, and Resolution Quality answer
+  different questions and must never be collapsed into one measure. Confidence
+  remains a distinct concept, but it is unavailable—not calibrated—and must be
+  omitted or shown explicitly as unavailable until its calibration and product
+  exposure gate is satisfied.
 - A missing finding means only that DomainLens did not establish it within the
   analyzed scope. It does not establish absence from the business or system.
 - Semantic evaluation compares findings with expert-reviewed expectations,
@@ -50,3 +53,9 @@ Related approved architecture:
 The exact scoring rubrics, release thresholds, service objectives, and human
 review thresholds remain open until representative evaluation data supports
 their selection.
+
+Confidence may be populated or exposed only after all four prerequisites exist:
+an applicable versioned calibration method, an applicable expert-reviewed
+corpus, evaluated calibration results, and an approved product decision to
+expose Confidence. Raw model self-report, renamed Support, or another
+uncalibrated proxy must never be presented as Confidence.

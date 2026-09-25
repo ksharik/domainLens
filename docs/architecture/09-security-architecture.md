@@ -71,8 +71,8 @@ isolation boundaries.
 - repository selection and snapshot integrity;
 - evidence/finding provenance and the distinction between Observed, Inferred,
   and Proposed;
-- persisted repository, analysis, and review data plus access/ownership isolation;
-- pipeline control state and human decisions;
+- persisted repository, analysis, Human Context, and review data plus access/ownership isolation;
+- pipeline control state, versioned human-supplied domain context, and separate human review decisions;
 - logs, prompts, model responses, and generated exports; and
 - software supply chain and analyzer/tool versions.
 
@@ -287,7 +287,8 @@ Comments, identifiers, strings, README files, configuration, and documentation
 from the repository remain data at every layer. Product V1 should enforce:
 
 - trusted, versioned system/application instructions outside repository data;
-- a typed `ContextPack` assembled by trusted code from validated evidence;
+- a typed `ContextPack` assembled by trusted code from validated evidence, prior findings,
+  counterevidence, limitations, and separately identified Human Context revisions;
 - clear quoting/labeling of repository excerpts and explicit provenance;
 - graph/lexical retrieval with relevance, counterevidence, and token budgets;
 - no unrestricted repository, filesystem, network, or tool access for the
@@ -295,6 +296,8 @@ from the repository remain data at every layer. Product V1 should enforce:
 - allowlisted tool schemas and deterministic authorization before every action;
 - structured model output with strict schema and size validation;
 - rejection of fabricated/unavailable evidence references;
+- rejection of fabricated, wrong-type, or out-of-pack Human Context references and any attempt to
+  present a human statement as deterministic evidence;
 - bounded repair/retry behavior; and
 - the invariant that model output cannot create Observed evidence, advance
   pipeline state, or execute an external action directly.
@@ -324,7 +327,7 @@ additional prerequisite.
 ### Identity, ownership, authorization, and access isolation
 
 Product V1 requires deterministic authorization decisions for repository submissions, analysis
-reads, cancellations, human decisions, exports, and administrative operations. The Web/API/Core
+reads, cancellations, Human Context creation/revision, human review decisions, exports, and administrative operations. The Web/API/Core
 boundary—not the model—must enforce them. A future policy may explicitly permit an anonymous
 operation; missing identity is never implicit permission.
 
@@ -352,8 +355,10 @@ administrator capabilities, and protocols are **OPEN DECISIONS**.
 ### Output validation and safe actions
 
 Evidence must pass Evidence Graph validation. Model output must pass the
-Finding Graph schema, evidence-reference, classification, confidence,
-counterevidence, and policy checks before persistence or review. Generated text
+Finding Graph schema, separate Evidence/Human Context reference, classification, Support,
+counterevidence, and policy checks before persistence or review. If Confidence is present, its
+applicable calibration and approved exposure must also be validated; raw model self-confidence or
+renamed Support is invalid. Generated text
 must be encoded for its display context. No output is executable configuration
 or an authorized instruction merely because it was produced by DomainLens.
 
@@ -365,10 +370,12 @@ mutation authority.
 ### Persistence and audit
 
 Product V1 should encrypt data in transit and at rest, apply access controls and isolation under the
-approved identity/ownership model, retain immutable snapshot/finding revisions and human decisions,
-and record security-relevant state transitions. Audit records should identify the applicable
-caller, session, principal, or workload context, action, target, result, and versioned policy/tool
-context without copying unrestricted source or prompts into logs.
+approved identity/ownership model, retain immutable snapshot/finding revisions, retain Human Context
+as separately versioned and supersedable provenance, and retain human review decisions as distinct
+audit-relevant actions. Audit records should identify the applicable caller, session, principal, or
+workload context when the approved identity model provides one, plus action, target, result, and
+versioned policy/tool context without copying unrestricted source, Human Context statements, or
+prompts into logs.
 
 Retention duration, deletion semantics, key strategy, regional placement, and
 the boundary between operational logs and durable audit records are OPEN
@@ -435,7 +442,8 @@ action could not occur.
 8. **Artifact authenticity:** whether Evidence Graphs, findings, and exports
    require signatures or authenticated envelopes in addition to hashes.
 9. **Retention and deletion:** lifetimes for repositories, source blobs,
-   evidence, ContextPacks, prompts/responses, findings, logs, and backups.
+   evidence, Human Context records, ContextPacks, prompts/responses, findings, review decisions,
+   logs, and backups.
 10. **Secret detection response:** redact, quarantine, fail, or require human
     confirmation when suspected secrets appear in selected context.
 11. **Supply-chain policy:** dependency pinning, SBOM/provenance, image signing,

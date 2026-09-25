@@ -27,7 +27,7 @@ The Domain Knowledge Model remains one canonical asset with two explicit semanti
 - **Recovered Domain Knowledge** — evidence-backed reconstruction of the existing system and business.
 - **Proposed DDD Design** — recommended DDD representations that may not exist in the source system.
 
-Both views preserve source findings, supporting and contradictory evidence, epistemic classification, assumptions, Support, Confidence, Coverage, Completeness, linked Resolution Quality, alternatives, review state, and revision history. Accepting a proposal changes its review state; it remains `Proposed`.
+Both views preserve source findings, supporting and contradictory evidence, epistemic classification, assumptions, Support, Coverage, Completeness, linked Resolution Quality, alternatives, review state, and revision history. They may also reference specific, versioned **Human Context** records separately from repository evidence and review decisions. Confidence remains a distinct quality dimension, but a value is retained or exposed only after the calibration and product-approval conditions in the [evaluation strategy](quality/01-evaluation-strategy.md) are met; until then it is unavailable/not calibrated or omitted by the eventual schema. Accepting a proposal changes its review state; it remains `Proposed`.
 
 ## Durable product asset
 

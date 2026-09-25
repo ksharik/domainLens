@@ -13,7 +13,7 @@
 - Predefined AI-assisted domain discovery and DDD modeling.
 - Business capability, actor, use-case, Domain Vocabulary, business-rule, invariant, workflow/state-transition, security-policy, data-ownership and coupling discovery where supported by analyzed evidence.
 - Finding validation and Finding Graph.
-- Human-in-the-loop clarification, challenge and review.
+- Human-in-the-loop clarification, durable Human Context, challenge and review.
 - Visible pipeline status/diagnostics.
 - Persistent analysis runs and Domain Knowledge Models.
 - Evidence-backed result exploration.
@@ -99,12 +99,20 @@ not proof of a boundary.
 - Caching.
 - Transaction-consistency characteristics.
 
-DomainLens shall preserve the distinction between observed implementation evidence and inferred/proposed domain meaning. Each DKM view shall retain source findings, evidence, classification, assumptions, Support, Confidence, Coverage, Completeness, linked Resolution Quality, alternatives, review state, and revision history. Human acceptance changes review state only: an accepted Proposed DDD concept remains `Proposed`. Absence of evidence in analyzed artifacts must not be represented as proof that a business rule, security policy or other concept does not exist.
+DomainLens shall preserve the distinction between observed implementation evidence and inferred/proposed domain meaning. Each DKM view shall retain source findings, evidence, separately referenced Human Context where used, classification, assumptions, Support, Coverage, Completeness, linked Resolution Quality, alternatives, review state, and revision history. A calibrated Confidence value is retained or exposed only after the readiness and product-approval conditions in the [evaluation strategy](quality/01-evaluation-strategy.md) are met; otherwise it is unavailable/not calibrated or omitted by the eventual schema. Human acceptance changes review state only: an accepted Proposed DDD concept remains `Proposed`. Absence of evidence in analyzed artifacts must not be represented as proof that a business rule, security policy or other concept does not exist.
 
 Coverage, Support, Confidence, Completeness and deterministic Resolution Quality are separate
-analysis dimensions. Their definitions and thresholds must remain visible rather than being
-collapsed into a single score. No Product V1 threshold is approved merely by listing a concept in
-scope.
+analysis dimensions. Their conceptual distinctions must remain explicit rather than being
+collapsed into a single score; this does not require DomainLens to populate or display Confidence
+before it is calibrated and approved. No Product V1 threshold is approved merely by listing a
+concept in scope.
+
+Human-supplied domain clarification is represented by a durable, versioned **Human Context record**
+(working term; `Human Context` versus `Domain Assertion` and the physical schema remain open). It
+is neither deterministic Evidence Graph evidence nor an `Observed`, `Inferred`, or `Proposed`
+classification, and it is separate from a model interpretation and from an acceptance, rejection,
+or challenge review action. Findings may cite the exact Human Context revision used, which may be
+corrected or superseded without rewriting prior analysis history.
 
 ## Excluded from V1
 

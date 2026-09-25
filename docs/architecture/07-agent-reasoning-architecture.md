@@ -23,7 +23,7 @@ coupling.
 | Coordinator/orchestration | Select approved stage and skill; build task request; invoke deterministic capabilities and provider adapter; manage retries, pauses, and review | Arbitrary tool selection, self-created capabilities, or bypass of policy gates |
 | Reasoning skill | Trusted, versioned contract for objective, evidence recipe, instructions, output schema, support rubric, and validation/repair policy | Direct repository access, permissions, persistence mutation, or executable code supplied by a repository |
 | Model reasoning | Interpret the supplied ContextPack; identify alternatives, contradictions, and questions; return structured Inferred/Proposed findings | Create Observed evidence, access the repository, invoke tools, elevate permissions, or commit results directly |
-| Human review | Clarify meaning; challenge, accept, reject, or request re-analysis of findings | Rewrite deterministic evidence or change claim classification merely by acceptance |
+| Human participation | Supply attributable domain context; challenge, accept, reject, or request re-analysis of findings | Rewrite deterministic evidence, conflate context with review state or model interpretation, or change claim classification merely by acceptance |
 
 ## V1 coordinator
 
@@ -31,7 +31,7 @@ The Pipeline Coordinator follows application-owned state and an allowlist of cap
 
 1. Selects a trusted skill and version for an explicit objective.
 2. Requests a task-specific ContextPack from the Context Builder.
-3. Constructs a structured request containing the objective, bounded evidence, existing findings, constraints, and required response schema.
+3. Constructs a structured request containing the objective, bounded evidence, prior findings, separately typed Human Context when applicable, constraints, and required response schema.
 4. Invokes a model through a provider adapter with no repository or general-purpose tool access.
 5. Validates syntax, schema, provenance, support, classification, and policy.
 6. Runs a bounded repair/retry path for correctable output errors.
@@ -55,7 +55,9 @@ A ContextPack is the sealed, versioned input envelope for one reasoning objectiv
 - pack schema version, pack ID/hash, objective, requested finding types, and token budget;
 - repository snapshot, Evidence Graph, analyzer, and rule version references;
 - selected Evidence IDs, graph slices, source snippets/spans, content hashes, and resolution quality;
-- relevant accepted or unresolved finding revisions;
+- relevant prior finding revision IDs and their semantic-view, classification, and review-state metadata;
+- selected versioned Human Context IDs, supplied statements, scope, provenance, and revision or
+  supersession status, clearly typed as human-provided context rather than source evidence;
 - evidence about behavior, rules/invariants, data/mutations/transactions, workflows/state, operations, persistence, messages/integrations, security, dependencies, and coupling appropriate to the objective;
 - identifier/text usages and semantic scopes relevant to Domain Vocabulary reasoning, without
   treating names or comments as deterministic business definitions;
@@ -64,6 +66,12 @@ A ContextPack is the sealed, versioned input envelope for one reasoning objectiv
 - summaries with links to their source evidence;
 - pruning/compression decisions and information-loss warnings;
 - task constraints and the structured output contract.
+
+These are distinct input channels. Deterministic evidence, prior findings, counterevidence, analysis
+limitations, and Human Context must retain their own identifiers and provenance in the sealed pack.
+A human statement cannot be represented as an Evidence ID, and repository text or comments cannot
+be represented as trusted Human Context. The exact canonical name and physical schema for the
+Human Context record remain an **OPEN DECISION**.
 
 ### Retrieval and reduction
 
@@ -90,7 +98,9 @@ ReasoningRequest
   objective
   skill/version
   contextPackId/hash
-  evidence references and existing findings
+  deterministic evidence references
+  prior finding references
+  human context references
   constraints and requested output schema
 
 AnalysisResult
@@ -99,8 +109,10 @@ AnalysisResult
     classification: Inferred | Proposed
     concept/relationship type and subjects
     supporting and counter evidence references
+    human context references
     reasoning, assumptions, alternatives
-    support, confidence, coverage, completeness
+    support, coverage, completeness
+    calibratedConfidence? (only after calibration and product-exposure approval)
     linked evidence resolution-quality summary
     contradictions and unresolved questions
   task limitations
@@ -113,7 +125,11 @@ The exact wire schema and scoring rubric are **OPEN DECISIONS**. The invariants 
 - `RecoveredDomainKnowledge` describes the existing business/system and uses `Inferred` for semantic claims;
 - a DDD recommendation uses `ProposedDddDesign` and remains `Proposed`, including after human acceptance;
 - a claim that both reconstructs an as-is condition and recommends a design must be split into atomic findings; and
-- every source-backed assertion must reference evidence present in the sealed pack.
+- every source-backed assertion must reference evidence present in the sealed pack;
+- every human-context-backed assertion must reference a Human Context revision present in the
+  sealed pack and must not present that record as deterministic source evidence; and
+- a finding may reference both deterministic Evidence IDs and Human Context IDs while retaining
+  its `Inferred` or `Proposed` classification as appropriate.
 
 ### Reasoning quality dimensions
 
@@ -121,9 +137,11 @@ Reasoning and validation must keep the following dimensions separate:
 
 - **Coverage** describes how much relevant source/artifact/evidence space the analysis could
   examine for the task.
-- **Support** describes how strongly the available evidence supports one atomic claim.
-- **Confidence** is calibrated from support, counterevidence, evidence quality, coverage and model
-  uncertainty; a model's self-reported confidence is not authoritative.
+- **Support** describes how strongly the available deterministic evidence and explicitly
+  attributed Human Context support one atomic claim without conflating those provenance sources.
+- **Confidence**, if available, is a calibrated interpretation of support, counterevidence,
+  evidence quality, coverage, and model uncertainty. It is not Support, and a model's self-reported
+  confidence is never accepted as calibrated Confidence.
 - **Completeness** describes how complete the requested reasoning dimension is believed to be under
   the declared scope and known limitations.
 - **Resolution Quality** (`Exact`, `Partial`, `Ambiguous`, `Unresolved`) belongs to deterministic
@@ -134,6 +152,12 @@ High Support with low Coverage and medium Support with high Coverage must remain
 scales and thresholds are **OPEN DECISIONS** documented in the
 [Quality and Evaluation Strategy](../quality/01-evaluation-strategy.md).
 
+Confidence must remain unavailable or not calibrated—and may be omitted from user-facing
+presentation—until all of the following exist: a versioned calibration method, an applicable
+expert-reviewed evaluation corpus, evaluated calibration results, and an approved product decision
+to expose Confidence. Until that gate is met, neither the model nor application code may populate a
+pseudo-confidence value, and Support must not be relabeled as Confidence.
+
 ## Invocation, validation, and review
 
 ```mermaid
@@ -142,6 +166,7 @@ sequenceDiagram
     participant C as Coordinator
     participant B as Context Builder
     participant E as Evidence Store
+    participant H as Human Context Store
     participant M as Model Provider
     participant V as Finding Validator
     participant F as Finding Store
@@ -149,6 +174,8 @@ sequenceDiagram
     C->>B: Build pack for objective and skill version
     B->>E: Retrieve bounded graph slices and counterevidence
     E-->>B: Evidence IDs, provenance, diagnostics
+    B->>H: Retrieve selected Human Context revisions
+    H-->>B: Human Context IDs, provenance, supersession status
     B-->>C: Sealed ContextPack plus hash and limitations
     C->>M: Structured request plus ContextPack
     M-->>C: Structured AnalysisResult
@@ -171,30 +198,54 @@ sequenceDiagram
 Validation is deterministic wherever possible:
 
 - parse and validate the declared response schema;
-- reject unknown Evidence IDs or references outside the ContextPack;
+- reject unknown Evidence IDs, unknown Human Context IDs, or references outside the ContextPack;
 - reject model-created `Observed` classifications;
 - reject an invalid semantic-view/classification pairing or a Proposed DDD item presented as recovered/as-is knowledge;
 - require atomic claims, supported subjects, producer/version metadata, and limitations;
 - verify that quoted snippets and claimed relationships correspond to supplied evidence;
-- retain counterevidence and prevent unsupported high-confidence claims;
+- verify that cited Human Context corresponds to the supplied revision and is never labeled as
+  Evidence Graph evidence;
+- retain counterevidence and reject populated or exposed Confidence until the calibration and
+  product-exposure gate is satisfied;
 - enforce allowed concept/relationship types and policy constraints;
 - append a new revision rather than overwrite reviewed history.
 
-The non-negotiable gates also prohibit treating coverage metrics as source evidence, using model
-confidence to repair missing deterministic evidence, or presenting a Proposed DDD finding as
-Recovered Domain Knowledge.
+The non-negotiable gates also prohibit treating coverage metrics or Human Context as source
+evidence, using raw model confidence to repair missing deterministic evidence, substituting Support
+for Confidence, or presenting a Proposed DDD finding as Recovered Domain Knowledge.
 
 Repair is bounded and auditable. A failed repair budget leads to a failed/rejected stage or human clarification, not silent acceptance. The precise retry categories, counts, and support thresholds are **OPEN DECISIONS**.
 
-## Human challenge and re-analysis
+## Human context, challenge, and re-analysis
 
-A user can ask why a concept was inferred, inspect its code evidence, supply domain clarification, challenge assumptions, and request re-analysis. The coordinator builds a new ContextPack that includes the challenged finding, its evidence, its counterevidence, and the human statement identified as human input. The outcome is a new finding revision with a traceable relationship to the prior one.
+A user can ask why a concept was inferred, inspect its code evidence, supply domain clarification,
+challenge assumptions, and request re-analysis. When supplied context affects reasoning, the
+application persists a durable, versioned Human Context record rather than embedding an unattributed
+statement only in a prompt or review event. Conceptual provenance includes a context/assertion ID,
+analysis or repository scope, the question or clarification request, the supplied statement,
+timestamp, applicable concepts or findings, and revision/supersession lineage. An actor, session, or
+principal reference is included only according to whatever identity model is eventually approved;
+this record does not itself require authentication or multi-tenancy.
 
-Human input is authoritative only for the decision/review state the product allows. It remains distinguishable from source evidence and model interpretation. Accepting an `Inferred` recovery does not make it `Observed`; accepting a `Proposed` DDD design does not make it `Inferred`, `Observed`, or recovered.
+Human Context is neither an Evidence Graph observation nor a finding or review state. It remains
+distinguishable from deterministic source evidence and model interpretation, may be included as its
+own typed input in a sealed ContextPack, and may be referenced by a resulting finding. Correction or
+supersession creates a new Human Context revision without rewriting history. Its exact name, status
+and validation semantics are open; it does not introduce a new epistemic classification.
+
+For challenge and re-analysis, the coordinator builds a new ContextPack containing the challenged
+finding, deterministic evidence, counterevidence, limitations, and any applicable Human Context
+revisions. The outcome is a new finding revision with traceable links to the prior finding and each
+input category. A separate review transition records any accept, reject, challenge, or supersede
+decision. Accepting an `Inferred` recovery does not make it `Observed`; accepting a `Proposed` DDD
+design does not make it `Inferred`, `Observed`, or recovered.
 
 ## Security boundary
 
-Repository source, comments, documentation, configuration, generated text, and extracted strings are untrusted data. They cannot become system or skill instructions. The provider adapter receives no repository credentials, filesystem tools, shell, network permissions, or persistence authority. Model output is data until all gates pass.
+Repository source, comments, documentation, configuration, generated text, extracted strings, and
+Human Context statements are untrusted data. They cannot become system or skill instructions. The
+provider adapter receives no repository credentials, filesystem tools, shell, network permissions,
+or persistence authority. Model output is data until all gates pass.
 
 Source-code egress, provider retention, deployment region, redaction, and consent policy must be resolved before model-backed V1 production use and before private repositories are supported. See [Security Architecture](09-security-architecture.md).
 
@@ -202,8 +253,13 @@ Source-code egress, provider retention, deployment region, redaction, and consen
 
 - Model provider, deployment/region, retention, source-egress, and provider-version policy.
 - Structured Finding and ContextPack schemas, semantic-view encoding, IDs, versioning, and canonical hashing.
-- Coverage/Support/Confidence/Completeness rubric and thresholds for validation or human
-  escalation, including aggregation of linked Resolution Quality.
+- Human Context versus Domain Assertion naming; physical schema; status/validation semantics;
+  scope and finding links; identity reference under an approved identity model; and
+  revision/supersession behavior.
+- Coverage/Support/Completeness rubrics and thresholds for validation or human escalation,
+  including aggregation of linked Resolution Quality.
+- Confidence calibration method, applicable expert-reviewed corpora, per-finding-type evaluation
+  and update cadence, and whether the product should expose calibrated Confidence at all.
 - Repairable-error categories, retry budget, timeout, and fallback behavior.
 - ContextPack token budgets, graph recipes, summarization rules, and persistence lifetime.
 - Counterevidence search recipes and evaluation datasets.

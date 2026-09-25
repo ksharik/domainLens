@@ -35,6 +35,15 @@ Quality gates and benchmark fixtures should mature alongside these milestones ac
 [Quality and Evaluation Strategy](quality/01-evaluation-strategy.md). Numeric release thresholds
 remain open decisions and must not be inferred from milestone numbering.
 
+Milestones 6 and 7 also have a semantic-quality readiness gate. Their outputs cannot be accepted
+as product-ready until the applicable scope has an expert-reviewed corpus of fixtures or
+version-pinned representative repositories, structured expected results, and a versioned evaluation rubric. If
+Confidence is used, an applicable versioned calibration method, an applicable expert-reviewed
+corpus, evaluated calibration results, and explicit product approval to expose Confidence are also
+required. Approved semantic acceptance/regression thresholds are required wherever the product
+decision calls for them. This is an acceptance gate for the existing milestones, not a new
+milestone, and it defines no numeric threshold.
+
 ## Future analyzers
 
 Pluggable analyzer families should add: ASP.NET MVC / MVC.NET; ASP.NET Web API; modern .NET APIs/apps; Java; Java EE/Jakarta enterprise applications; Spring Framework; Spring Boot; REST/OpenAPI; standalone relational database/schema and broader persistence-framework analysis beyond the configured V1 code/config evidence; messaging/event-driven systems such as Kafka/RabbitMQ patterns; and additional stacks based on demand.

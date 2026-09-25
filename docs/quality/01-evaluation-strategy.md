@@ -25,8 +25,9 @@ modernization quality are outside Product V1's Reverse DDD evaluation scope.
 
 - Repository content is untrusted evaluation input, not an instruction source.
 - Deterministic application code alone creates `Observed` evidence.
-- Models may create only `Inferred` or `Proposed` findings and may cite only
-  evidence supplied in their sealed ContextPack.
+- Models may create only `Inferred` or `Proposed` findings and may reference only typed inputs
+  supplied in their sealed ContextPack. Source-backed assertions cite deterministic Evidence IDs;
+  human-supplied statements cite Human Context revisions; prior findings remain finding references.
 - Generated prose, quality dashboards, telemetry, and benchmark scores are
   views over canonical records; none is the canonical result.
 - Metrics report quality characteristics. They do not establish facts about
@@ -38,6 +39,9 @@ modernization quality are outside Product V1's Reverse DDD evaluation scope.
 - Source naming is neither necessary nor sufficient for a DDD conclusion.
 - Human acceptance changes review state, not epistemic classification or
   semantic view.
+- Human Context is a versioned provenance record, not Evidence Graph evidence, model
+  interpretation, review state, or another epistemic classification. Its contribution to Support
+  must be explicit under a versioned rubric rather than silently combined with source evidence.
 
 ## Five distinct analysis concepts
 
@@ -48,14 +52,15 @@ them into an unexplained single score.
 |---|---|---|---|
 | **Coverage** | A declared analysis scope and a versioned analyzer/retrieval recipe | How much of the relevant, enumerable source, artifact, construct, or evidence-candidate space DomainLens actually examined successfully. A quantitative value is valid only when its numerator, denominator, exclusions, unknowns, and scope are stated. | Strength of a semantic claim, completeness of the repository, or proof that an omitted concept does not exist. |
 | **Support** | One atomic semantic finding revision | How strongly the evidence supplied for that claim favors it after relevant counterevidence, resolution quality, evidence diversity, and directness are considered. | A repository-wide coverage statement or model self-confidence. |
-| **Confidence** | One finding revision under a versioned calibration method | A calibrated assessment combining support, contradictions, evidence quality, applicable coverage, known uncertainty, and evaluation history. Model self-report may be an input signal but is never authoritative. | Proof, Observed evidence, human acceptance, or a substitute for showing evidence and limitations. |
+| **Confidence** | One finding revision, only after the Confidence availability gate is satisfied | A calibrated assessment combining support, contradictions, evidence quality, applicable coverage, known uncertainty, and evaluation history under an applicable versioned method. Until the gate is satisfied, Confidence is unavailable—not calibrated—and is omitted or shown explicitly as unavailable according to the eventual schema. | Proof, Observed evidence, human acceptance, raw model self-report, renamed Support, or a substitute for showing evidence and limitations. |
 | **Completeness** | One requested analysis dimension within declared scope | How fully DomainLens believes it answered the requested question, considering expected subdimensions, analyzed scope, known unsupported areas, unresolved items, and missing inputs. | Global completeness of the system or a claim that undiscovered behavior is absent. |
 | **Resolution Quality** | One deterministic source observation or relationship | How certainly an analyzer resolved that source relationship using the established vocabulary `Exact`, `Partial`, `Ambiguous`, or `Unresolved`. | Semantic support, business meaning, or whole-repository coverage. |
 
-The scales and scoring formulas for support, confidence, coverage, and
-completeness are **OPEN DECISIONS**. Any chosen rubric must be versioned and
-must retain the underlying facts from which its presentation value is derived.
-Resolution Quality already has an approved four-value vocabulary in the
+The scales and scoring formulas for support, Confidence, coverage, and
+completeness are **OPEN DECISIONS**. Confidence is not currently an available
+field or product signal. Any chosen rubric must be versioned and must retain
+the underlying facts from which its presentation value is derived. Resolution
+Quality already has an approved four-value vocabulary in the
 [Evidence Architecture](../architecture/05-evidence-architecture.md).
 
 ### Coverage is scoped and multidimensional
@@ -92,10 +97,20 @@ not yet approved.
 ### Confidence requires calibration
 
 Confidence is a product interpretation of support and uncertainty. It must be
-calibrated against versioned, expert-reviewed evaluation results by finding
-type and, where necessary, by analyzer or fixture category. A model's stated
+treated as unavailable—not calibrated—and omitted or displayed explicitly as
+unavailable until all of these conditions are satisfied:
+
+1. an applicable versioned calibration method exists;
+2. an applicable expert-reviewed corpus exists;
+3. calibration has been evaluated on that corpus; and
+4. a product decision explicitly approves exposing Confidence.
+
+After that gate is satisfied, Confidence must be calibrated by finding type
+and, where necessary, by analyzer or fixture category. A model's stated
 confidence is not proof and must not override contradictory evidence, poor
-Resolution Quality, or low coverage.
+Resolution Quality, or low coverage. DomainLens must not manufacture
+pseudo-confidence, relabel Support as Confidence, or use an uncalibrated label
+as a substitute.
 
 ### Completeness is question-relative
 
@@ -129,7 +144,7 @@ The following is illustrative, not an approved score threshold:
 | Semantic view / classification | Recovered Domain Knowledge / `Inferred` |
 | Support | Strong under the named draft rubric because mutation, repository, lifecycle, and transaction observations converge. |
 | Coverage | 72% of the explicitly declared aggregate-evidence search units were analyzed; the numerator and denominator travel with the value. |
-| Confidence | Calibrated value or label under the recorded rubric version, reduced for the missing inputs below. |
+| Confidence | Unavailable—not calibrated (or omitted under the eventual schema) until the four-part Confidence availability gate is satisfied. |
 | Counterevidence | None found **within the analyzed scope**. |
 | Known limitations | Referenced assembly unavailable; stored procedures absent from the repository; dynamic dispatch unresolved. |
 | Alternative interpretation | `CustomerService` may own a transaction-script boundary rather than the implementation enforcing a domain aggregate. |
@@ -202,6 +217,9 @@ honest about uncertainty, and useful to a domain or architecture reviewer.
 - **Fabricated-evidence-reference rate:** proportion of evidence citations that
   do not resolve to an Evidence ID supplied in the sealed ContextPack. Accepted
   findings must contain no such references.
+- **Invalid-Human-Context-reference rate:** proportion of Human Context citations that do not
+  resolve to the exact typed revision supplied in the sealed ContextPack, or that are presented as
+  source evidence. Accepted findings must contain no such references.
 - **Counterevidence handling:** whether expected contradictory evidence was
   retrieved, preserved, weighed, and shown rather than omitted or rationalized
   away.
@@ -240,6 +258,8 @@ string matching of generated prose is not a valid semantic-quality method.
   Evidence Graph.
 - Every cited Evidence ID must exist in the finding's sealed ContextPack and
   resolve to the identified snapshot.
+- Every cited Human Context ID/revision must exist as that record type in the sealed ContextPack;
+  it must remain distinct from Evidence Graph records, model interpretation, and review state.
 - A semantic finding must not cite source material, relationships, or evidence
   outside that ContextPack as though the model inspected it.
 - `RecoveredDomainKnowledge` model claims must be `Inferred`;
@@ -257,6 +277,8 @@ string matching of generated prose is not a valid semantic-quality method.
 - Human review changes review state or creates a revision; it must not relabel
   `Inferred` as `Observed`, relabel `Proposed`, or move a proposal into the
   recovered view.
+- Creating, correcting, or superseding Human Context must preserve prior revisions and the exact
+  ContextPack/finding/DKM lineage that used them; it is not itself a review-state transition.
 
 These are acceptance invariants. Measures such as concept accuracy or human
 agreement require empirically selected release thresholds, which remain open.
@@ -293,6 +315,7 @@ expectations are available.
 | Record | Describes | May support a semantic finding about the analyzed system? |
 |---|---|---|
 | Evidence Graph record | A deterministic observation from an identified snapshot and analyzer rule. | Yes, when included in the sealed ContextPack and relevant to the claim. |
+| Human Context record | An attributable, versioned human-supplied domain statement, distinct from source evidence and review state. | It may inform a finding when the exact revision is included in the sealed ContextPack and cited separately. Whether and how it affects Support remains a versioned-rubric decision; it never becomes Observed evidence. |
 | Finding / DKM record | An evidence-linked semantic interpretation or proposal. | It may be prior reviewed context, but it does not become Observed evidence. |
 | Coverage/completeness measure | What DomainLens examined or answered under a declared recipe and scope. | No. It qualifies uncertainty and limitations. |
 | Evaluation score | How output compared with a versioned benchmark expectation. | No. It evaluates DomainLens; it is not a fact about the subject repository. |
@@ -316,7 +339,7 @@ planned evaluation asset; this documentation task does not create it.
 | **B** | Traditional layered/N-tier WCF application | Reconstruct domain knowledge across service, business, and data layers without equating layers, projects, or namespaces with bounded contexts. |
 | **C** | Anemic domain model | Find behavior outside entities and avoid proposing entity methods as recovered behavior. |
 | **D** | Transaction-script application | Recover rules, workflows, transactions, and data ownership without requiring domain objects. |
-| **E** | Highly coupled legacy monolith | Represent cross-cutting calls, shared data, contradictory boundaries, and low-confidence alternatives rather than forcing clean contexts. |
+| **E** | Highly coupled legacy monolith | Represent cross-cutting calls, shared data, contradictory boundaries, and weakly supported alternatives rather than forcing clean contexts. |
 | **F** | Misleading DDD vocabulary, including types named `AggregateRoot`, `Entity`, or similar without matching behavior | Detect declarations as Observed while rejecting name-only semantic conclusions. |
 | **G** | No DDD terminology | Demonstrate source-model-neutral recovery from behavior, rules, data, operations, security, and coupling. |
 | **H** | Partial or incomplete repository | Report missing inputs and reduced coverage/completeness; do not convert “not found” into absence. |
@@ -343,9 +366,11 @@ For each fixture, reviewers should maintain structured expectations for:
 - data ownership, consumption, persistence, transaction, and consistency;
 - business-capability candidates;
 - aggregate and Aggregate Root candidates;
-- bounded-context candidates and context relationships; and
+- bounded-context candidates and context relationships;
 - known ambiguity, counterevidence, limitations, and acceptable alternative
-  interpretations.
+  interpretations; and
+- supplied Human Context cases, including exact provenance/revisions, expected separate citation,
+  conflicts or supersession where applicable, and prohibited treatment as Evidence Graph facts.
 
 Expectations should be atomic and machine-addressable where practical. They
 should declare required observations/claims, prohibited overclaims, optional or
@@ -368,8 +393,10 @@ At minimum, evaluation reporting should provide:
 2. end-to-end Evidence Graph regression for pinned snapshots and versions;
 3. semantic results sliced by knowledge type and corpus category;
 4. gate failures separately from statistical quality measures;
-5. coverage, support, confidence, completeness, and Resolution Quality as
-   separate fields;
+5. coverage, support, completeness, and Resolution Quality as separate fields,
+   with Confidence present only when its availability gate is satisfied and
+   otherwise omitted or explicitly marked unavailable according to the
+   versioned schema;
 6. correct abstentions and limitations alongside false positives and misses;
 7. repeated-run variation for model-backed stages under the recorded provider
    and configuration; and
@@ -378,6 +405,28 @@ At minimum, evaluation reporting should provide:
 A single blended benchmark score is not approved. Aggregation weights could
 hide a severe correctness failure or poor performance on non-DDD systems.
 Release decisions should retain per-category and per-knowledge-dimension views.
+
+### Semantic-quality readiness gate for Milestones 6 and 7
+
+Milestone 6 domain recovery and Milestone 7 recovered-DDD interpretation,
+Proposed DDD Design, and validation are not ready for product acceptance merely
+because the reasoning pipeline runs. Before their semantic outputs can be
+accepted as product-ready, the applicable analysis scope must have:
+
+- an applicable expert-reviewed corpus of fixtures or version-pinned representative repositories;
+- structured expected results that preserve required findings, prohibited
+  overclaims, acceptable alternatives, known ambiguity, and limitations;
+- a versioned evaluation rubric appropriate to the finding types under review;
+- an applicable versioned calibration method, an applicable expert-reviewed corpus, evaluated
+  calibration results, and explicit product approval to expose Confidence if Confidence will be
+  used; and
+- approved semantic acceptance/regression thresholds wherever the product decision
+  requires thresholds.
+
+This is an acceptance gate for the existing milestones, not a new milestone.
+It sets no numeric threshold. Until the necessary corpus, rubric, results, and
+product decisions exist, results may support development and evaluation but
+must not be represented as having passed semantic product readiness.
 
 ## Release and regression policy
 

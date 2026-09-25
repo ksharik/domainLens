@@ -68,7 +68,7 @@ Supporting product and design specifications refine this baseline without replac
 | Output | Validated `domainlens.evidence.v1` Evidence Graph in canonical JSON | Evidence Graph, validated Finding Graph, one versioned Domain Knowledge Model with recovered and proposed-DDD views, and evidence-backed presentations |
 | Runtime | Local CLI and in-process libraries | Azure-hosted UI/API/Core plus an isolated Windows-capable analyzer worker |
 | Reasoning | None | Fixed coordinator workflow, sealed Context Packs, allowlisted skills, and structured model output |
-| Persistence | Output JSON chosen by the CLI caller | Durable repository/run state, evidence, finding revisions, human decisions, and knowledge-model versions |
+| Persistence | Output JSON chosen by the CLI caller | Durable repository/run state, evidence, Human Context revisions, finding revisions, human review decisions, and knowledge-model versions |
 | Human interaction | CLI scan and symbol inspection | Progress, clarification, review, challenge, explanation, and result exploration |
 
 The detailed implementation authority for the current slice is [Repository Structure Scanner 0.1](../11-milestone-1-repository-scanner.md). Product scope is defined in [V1 Scope](../02-v1-scope.md) and [Functional Requirements](../03-functional-requirements.md).
@@ -106,14 +106,14 @@ The following choices are intentionally unresolved. Each is owned by the documen
 | Runtime isolation | Job transport, Windows sandbox/hosting mechanism, worker limits, cancellation guarantees, cleanup, and Windows/Linux routing | [Runtime](03-runtime-architecture.md) |
 | Pipeline | State/checkpoint schema, retry categories and budgets, configured V1 analyzer-job contract, human-pause expiry, and partial-run completion policy | [Analysis Pipeline](04-analysis-pipeline.md) |
 | Evidence | Schema evolution, multi-analyzer merge rules, Git revision capture, and cross-snapshot logical identity/rename handling | [Evidence](05-evidence-architecture.md) |
-| Domain knowledge | Concept cardinalities, semantic-view encoding/cross-view relationships, quality-dimension representation/rubrics/aggregation/calibration, finding projection eligibility, version lineage, and decomposition-result schema | [Domain Knowledge](06-domain-knowledge-architecture.md) |
-| Reasoning and context | Model provider/deployment/retention, structured finding schema, support thresholds, repair budget, ContextPack budget/version, and evaluation gate for semantic retrieval | [Agent and Reasoning](07-agent-reasoning-architecture.md) |
-| Persistence | Storage products, artifact/relational split, transactions, migrations, encryption, retention/deletion, and concurrent updates | [Persistence](08-persistence-architecture.md) |
+| Domain knowledge | Concept cardinalities, semantic-view encoding/cross-view relationships, quality-dimension representation/rubrics/aggregation/calibration, conditional Confidence availability, finding projection eligibility, version lineage, and decomposition-result schema | [Domain Knowledge](06-domain-knowledge-architecture.md) |
+| Reasoning and context | Model provider/deployment/retention, structured finding schema, support thresholds, repair budget, ContextPack budget/version, Human Context inclusion/validation, and evaluation gate for semantic retrieval | [Agent and Reasoning](07-agent-reasoning-architecture.md) |
+| Persistence | Storage products, artifact/relational split, Human Context naming/schema/revision/supersession, transactions, migrations, encryption, retention/deletion, and concurrent updates | [Persistence](08-persistence-architecture.md) |
 | Security | URL/DNS/redirect policy, egress/redaction/consent, secret handling, sandbox technology, workspace sanitization, identity/ownership authorization and isolation, and audit access | [Security](09-security-architecture.md) |
 | Deployment | Azure services, region/DR/network topology, scale model, queues, containers, and any future AKS threshold | [Deployment](10-deployment-architecture.md) |
 | Extensibility | Analyzer registration/loading, contract negotiation, future discovery heuristics/generated Analysis Plans, capability scheduling, and conformance suite | [Extensibility](11-extensibility-architecture.md) |
 | Operations | Telemetry backend, SLOs, alerts, sampling, retention, redaction, cost budgets, and incident policy | [Observability](12-observability-and-operations.md) |
-| Quality and evaluation | Coverage denominators, support/confidence/completeness rubrics, benchmark annotations, release thresholds, and human-agreement policy | [Evaluation Strategy](../quality/01-evaluation-strategy.md) |
+| Quality and evaluation | Coverage denominators, support/completeness rubrics, Confidence calibration/exposure readiness, benchmark annotations, release thresholds, and human-agreement policy | [Evaluation Strategy](../quality/01-evaluation-strategy.md) |
 | V1 artifact support | Partial/deferred artifact choices, safe semantic enrichment, generated/third-party inputs, SQL/stored-procedure depth, and conformance criteria | [V1 Analysis Coverage](../design/01-v1-analysis-coverage.md) |
 | Results experience | Query/API contract, visualizations, source excerpt policy, review gates, exports, and cross-run comparison | [Results Explorer](../product/01-results-explorer.md) |
 

@@ -5,7 +5,7 @@
 
 ## Coordinator
 
-V1 uses a fixed allowlisted workflow rather than arbitrary dynamic sub-agents. It manages analysis state, invokes deterministic capabilities, builds context packs, invokes approved reasoning skills, validates outputs and coordinates human review.
+V1 uses a fixed allowlisted workflow rather than arbitrary dynamic sub-agents. It manages analysis state, invokes deterministic capabilities, records versioned Human Context separately from review actions, builds context packs, invokes approved reasoning skills, validates outputs and coordinates human review.
 
 ## Deterministic responsibilities
 
@@ -41,7 +41,10 @@ A skill is a trusted/versioned reasoning contract defining purpose, evidence req
 Each skill's evidence requirements must align with the
 [knowledge-to-evidence traceability](design/02-knowledge-evidence-traceability.md) contract. Its
 output must keep Coverage, Support, Confidence, Completeness and deterministic Resolution Quality
-distinct according to the [evaluation strategy](quality/01-evaluation-strategy.md); model
-self-confidence cannot compensate for missing analyzer evidence.
+conceptually distinct according to the [evaluation strategy](quality/01-evaluation-strategy.md).
+Confidence is optional and unavailable until the documented calibration and exposure gate is met;
+model self-confidence cannot populate it or compensate for missing analyzer evidence, and Support
+cannot be relabeled as Confidence. Human Context used by a skill must be a separately typed,
+versioned ContextPack input and must never masquerade as Evidence Graph evidence.
 
 MCP, A2A and richer multi-agent coordination are roadmap capabilities, not V1 prerequisites.

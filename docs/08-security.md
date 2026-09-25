@@ -19,6 +19,11 @@ Trusted code constructs context. Model output remains untrusted until schema/pro
 
 ## Human input
 
-User decisions affect interpretations/review state but never rewrite deterministic source evidence.
+Human-supplied domain context and human review decisions are separate untrusted inputs. A domain
+statement used in reasoning is stored as a versioned Human Context record with provenance and may
+be cited only as Human Context; it never becomes deterministic source evidence or an `Observed`
+fact. Acceptance, rejection and challenge affect review state or create new revisions but do not
+rewrite Evidence Graph records, prior Human Context revisions, or epistemic classification. Any
+actor/session/principal attribution is conditional on the eventually approved identity model.
 
 Before private repositories are supported, define source-code egress, model retention, secret-redaction and credential policies.
