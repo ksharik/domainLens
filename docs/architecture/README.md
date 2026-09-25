@@ -10,6 +10,9 @@ This section describes how DomainLens is structured to satisfy the approved prod
 
 Every architecture document uses the following labels deliberately:
 
+- **CURRENT — Milestone 0 feasibility:** executable spike evidence for a local Windows-oriented
+  child worker and narrow net472 semantic enrichment. It is not production containment or an
+  Azure deployment.
 - **CURRENT — Scanner 0.1:** behavior implemented on `development` today. It is a local .NET 10 CLI/library vertical slice, not the complete V1 product.
 - **PLANNED V1:** approved target architecture or behavior required for the end-to-end Azure product, but not necessarily implemented.
 - **FUTURE:** an evolution explicitly outside the V1 commitment.
@@ -58,20 +61,21 @@ Supporting product and design specifications refine this baseline without replac
 | [Quality and Evaluation Strategy](../quality/01-evaluation-strategy.md) | Deterministic, semantic and operational quality plus benchmark strategy |
 | [V1 Analysis Coverage](../design/01-v1-analysis-coverage.md) | Intended treatment, ownership and limitations of legacy .NET/WCF artifacts |
 | [Knowledge-to-Evidence Traceability](../design/02-knowledge-evidence-traceability.md) | Evidence and analyzer prerequisites for Domain Knowledge outputs |
+| [Milestone 0 Feasibility Report](../12-milestone-0-deployment-security-feasibility.md) | Tested child-process, security and legacy semantic-analysis mechanisms, constraints and production gaps |
 
 ## Current implementation and target product
 
-| Capability | CURRENT — Scanner 0.1 | PLANNED V1 |
+| Capability | CURRENT — M0/M1 evidence slice | PLANNED V1 |
 |---|---|---|
 | Input | Local repository path and optional solution selection | Public Git URL, selected immutable revision, and validated snapshot |
-| Analysis | Bounded inventory, declarative solution/project reading, syntax-only C# extraction | Configured, approved legacy C#/.NET Framework/WCF structural and WCF analyzers plus one Relationship / persistence / behavioral evidence capability that includes supported security evidence; generalized automatic technology discovery and generated Analysis Plans are FUTURE |
+| Analysis | Bounded inventory, declarative solution/project reading, syntax-first C# extraction, plus an M0 net472 `SemanticModel` feasibility result over one flattened manifest-source compilation, the exact tool-owned reference catalog, and declared `Partial` resolution | Configured, approved legacy C#/.NET Framework/WCF structural and WCF analyzers plus one Relationship / persistence / behavioral evidence capability that includes supported security evidence; generalized automatic technology discovery and generated Analysis Plans are FUTURE |
 | Output | Validated `domainlens.evidence.v1` Evidence Graph in canonical JSON | Evidence Graph, validated Finding Graph, one versioned Domain Knowledge Model with recovered and proposed-DDD views, and evidence-backed presentations |
-| Runtime | Local CLI and in-process libraries | Azure-hosted UI/API/Core plus an isolated Windows-capable analyzer worker |
+| Runtime | Local CLI plus an M0 separate-child-process feasibility host with bounded staging/results, worker-lifetime/result-acceptance deadline and cancellation, result gates and cleanup; no hard deadline for synchronous trusted postprocessing, production OS containment, or Azure deployment | Azure-hosted UI/API/Core plus an isolated Windows-capable analyzer worker |
 | Reasoning | None | Fixed coordinator workflow, sealed Context Packs, allowlisted skills, and structured model output |
 | Persistence | Output JSON chosen by the CLI caller | Durable repository/run state, evidence, Human Context revisions, finding revisions, human review decisions, and knowledge-model versions |
 | Human interaction | CLI scan and symbol inspection | Progress, clarification, review, challenge, explanation, and result exploration |
 
-The detailed implementation authority for the current slice is [Repository Structure Scanner 0.1](../11-milestone-1-repository-scanner.md). Product scope is defined in [V1 Scope](../02-v1-scope.md) and [Functional Requirements](../03-functional-requirements.md).
+The detailed implementation authorities for the current slice are [Repository Structure Scanner 0.1](../11-milestone-1-repository-scanner.md) and the [Milestone 0 Feasibility Report](../12-milestone-0-deployment-security-feasibility.md). Product scope is defined in [V1 Scope](../02-v1-scope.md) and [Functional Requirements](../03-functional-requirements.md).
 
 ## Authority and dependency rules
 
@@ -103,13 +107,13 @@ The following choices are intentionally unresolved. Each is owned by the documen
 | Area | Open decisions | Owner |
 |---|---|---|
 | Intake and identity | Supported Git hosts/protocols/ref forms, redirects, submodules/LFS, authentication requirement/provider, user identity and ownership model, tenancy, anonymous access, roles/permissions, sharing, and client API versioning | [System Context](01-system-context.md), [Security](09-security-architecture.md) |
-| Runtime isolation | Job transport, Windows sandbox/hosting mechanism, worker limits, cancellation guarantees, cleanup, and Windows/Linux routing | [Runtime](03-runtime-architecture.md) |
+| Runtime isolation | Durable job transport, Windows OS-containment/hosting mechanism, production limits, identity, network policy, cancellation guarantees, cleanup, and Windows/Linux routing | [Runtime](03-runtime-architecture.md) |
 | Pipeline | State/checkpoint schema, retry categories and budgets, configured V1 analyzer-job contract, human-pause expiry, and partial-run completion policy | [Analysis Pipeline](04-analysis-pipeline.md) |
 | Evidence | Schema evolution, multi-analyzer merge rules, Git revision capture, and cross-snapshot logical identity/rename handling | [Evidence](05-evidence-architecture.md) |
 | Domain knowledge | Concept cardinalities, semantic-view encoding/cross-view relationships, quality-dimension representation/rubrics/aggregation/calibration, conditional Confidence availability, finding projection eligibility, version lineage, and decomposition-result schema | [Domain Knowledge](06-domain-knowledge-architecture.md) |
 | Reasoning and context | Model provider/deployment/retention, structured finding schema, support thresholds, repair budget, ContextPack budget/version, Human Context inclusion/validation, and evaluation gate for semantic retrieval | [Agent and Reasoning](07-agent-reasoning-architecture.md) |
 | Persistence | Storage products, artifact/relational split, Human Context naming/schema/revision/supersession, transactions, migrations, encryption, retention/deletion, and concurrent updates | [Persistence](08-persistence-architecture.md) |
-| Security | URL/DNS/redirect policy, egress/redaction/consent, secret handling, sandbox technology, workspace sanitization, identity/ownership authorization and isolation, and audit access | [Security](09-security-architecture.md) |
+| Security | URL/DNS/redirect policy, egress/redaction/consent, secret handling, OS-containment technology, workspace sanitization, identity/ownership authorization and isolation, and audit access | [Security](09-security-architecture.md) |
 | Deployment | Azure services, region/DR/network topology, scale model, queues, containers, and any future AKS threshold | [Deployment](10-deployment-architecture.md) |
 | Extensibility | Analyzer registration/loading, contract negotiation, future discovery heuristics/generated Analysis Plans, capability scheduling, and conformance suite | [Extensibility](11-extensibility-architecture.md) |
 | Operations | Telemetry backend, SLOs, alerts, sampling, retention, redaction, cost budgets, and incident policy | [Observability](12-observability-and-operations.md) |

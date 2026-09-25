@@ -29,6 +29,8 @@ public static class AnalysisJson
         var document = JsonSerializer.Deserialize<AnalysisDocument>(json, SerializerOptions)
             ?? throw new JsonException("The JSON did not contain an analysis document.");
 
+        ValidateRequiredShape(document);
+
         return Normalize(document);
     }
 
@@ -226,12 +228,44 @@ public static class AnalysisJson
         var options = new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            PropertyNameCaseInsensitive = true,
-            DefaultIgnoreCondition = JsonIgnoreCondition.Never
+            PropertyNameCaseInsensitive = false,
+            DefaultIgnoreCondition = JsonIgnoreCondition.Never,
+            UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
+            RespectRequiredConstructorParameters = true,
+            AllowTrailingCommas = false,
+            ReadCommentHandling = JsonCommentHandling.Disallow,
+            MaxDepth = 128
         };
         options.Converters.Add(new JsonStringEnumConverter(
             JsonNamingPolicy.CamelCase,
             allowIntegerValues: false));
         return options;
+    }
+
+    private static void ValidateRequiredShape(AnalysisDocument document)
+    {
+        if (document.Snapshot is null ||
+            document.Snapshot.Manifest is null ||
+            document.Nodes is null ||
+            document.Edges is null ||
+            document.Evidence is null ||
+            document.Diagnostics is null)
+        {
+            throw new JsonException("The analysis document contains a null required member.");
+        }
+
+        if (document.Snapshot.Manifest.Any(entry => entry is null) ||
+            document.Nodes.Any(node =>
+                node is null || node.EvidenceIds is null || node.Attributes is null || node.Properties is null) ||
+            document.Edges.Any(edge =>
+                edge is null || edge.EvidenceIds is null || edge.Resolution is null) ||
+            document.Evidence.Any(evidence =>
+                evidence is null || evidence.Span is null || evidence.Provenance is null ||
+                evidence.Resolution is null) ||
+            document.Diagnostics.Any(diagnostic =>
+                diagnostic is null || diagnostic.EvidenceIds is null || diagnostic.Properties is null))
+        {
+            throw new JsonException("The analysis document contains a null required nested member.");
+        }
     }
 }

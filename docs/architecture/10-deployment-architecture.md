@@ -7,7 +7,14 @@ document defines conceptual deployment roles and their security relationships. I
 does not choose an Azure product, SKU, region, topology, or orchestration technology where the
 requirements do not yet justify one.
 
-- **CURRENT — Milestone 1:** DomainLens is a .NET 10 CLI/library solution with CI. No Web UI, API host, analyzer-worker service, durable application store, or Azure infrastructure is implemented.
+- **CURRENT — Milestone 0 feasibility:** DomainLens has a local Windows-oriented child-worker
+  spike with bounded staging/results, worker-lifetime/result-acceptance deadline and cancellation,
+  trusted result gates, cleanup, and a narrow net472 semantic analyzer. Synchronous trusted
+  postprocessing is not independently preempted. This is not an Azure deployment or production
+  containment mechanism.
+- **CURRENT — Milestone 1:** DomainLens remains a .NET 10 CLI/library solution with CI. No Web UI,
+  API host, analyzer-worker service, durable application store, or Azure infrastructure is
+  implemented.
 - **PLANNED — Product V1:** Azure-hosted UI and trusted application tier, a separately isolated Windows-capable analyzer worker, durable persistence, temporary analysis storage, model connectivity, configuration/secrets, and operational telemetry.
 - **FUTURE:** Linux analyzer workers, queues and worker pools for concurrency, containerization where useful, and AKS only when measured scale or scheduling/isolation requirements warrant it.
 
@@ -87,6 +94,13 @@ their trust, scaling, failure, and release characteristics permit it. The isolat
 boundary is the exception: it must remain separate from the trusted application process before
 hosted untrusted-repository analysis is enabled.
 
+Milestone 0 does not select a resource behind any box. Its passing child-process tests establish
+that the job/result protocol is feasible, while same-account execution, absent network denial, and
+missing CPU/memory/process/disk containment make that mechanism insufficient for hosted hostile
+input. Restricted-identity/job-object hosting, Windows process-isolated containers, and Hyper-V-
+isolated containers or disposable VMs remain comparison categories, not decisions. See the
+[Milestone 0 Feasibility Report](../12-milestone-0-deployment-security-feasibility.md).
+
 ## Deployment roles
 
 | Role | PLANNED V1 responsibility | Boundary and scaling concern | Not decided here |
@@ -160,8 +174,12 @@ their target versions describe analyzed systems and must not be upgraded to matc
 host.
 
 The Windows worker may require framework-specific reference assets and trusted analysis tooling.
-Those assets do not change the .NET 10 host decision and do not authorize building an analyzed
-repository.
+Milestone 0 demonstrates one exact tool-owned reference catalog through the private
+`Microsoft.NETFramework.ReferenceAssemblies.net472` 1.0.3 package. Compiler-readable reference
+DLL descriptors are reconstructed and validated by trusted code; repository metadata cannot add
+to that catalog. Those assets are part of the DomainLens deployment, not resolved from the
+analyzed repository. They do not change the .NET 10 host decision and do not authorize evaluating
+MSBuild or restoring/building an analyzed repository.
 
 ## Open decisions
 
@@ -169,7 +187,9 @@ repository.
 - **OPEN DECISION — topology:** region strategy, availability zones, disaster recovery, backup objectives, and data residency.
 - **OPEN DECISION — network architecture:** public/private endpoints, virtual network layout, DNS policy, outbound filtering, and model/Git connectivity.
 - **OPEN DECISION — application deployables:** which trusted modules initially co-host and the criteria for later separation.
-- **OPEN DECISION — worker host:** Windows VM, container, job, or another isolation mechanism, including patching and image provenance.
+- **OPEN DECISION — worker host:** restricted-identity/job-object process, Windows process- or
+  Hyper-V-isolated container, disposable VM, or another containment mechanism, including network,
+  ACL, quota, patching, compatibility, and image/provenance requirements. M0 does not choose one.
 - **OPEN DECISION — dispatch semantics:** queue or scheduler selection, delivery guarantees, leases, deduplication, and poison-job handling.
 - **OPEN DECISION — persistence path:** lightweight V1 implementation, Azure-managed relational migration trigger, and artifact/database split.
 - **OPEN DECISION — capacity policy:** concurrency limits, autoscale signals, quotas, per-tenant fairness if tenancy is introduced, and cost controls.
@@ -184,6 +204,7 @@ repository.
 - [Security Architecture](09-security-architecture.md)
 - [Observability and Operations](12-observability-and-operations.md)
 - [Deployment direction](../09-deployment.md)
+- [Milestone 0 Feasibility Report](../12-milestone-0-deployment-security-feasibility.md)
 
 Related accepted decisions: [ADR-001](../adr/001-azure-primary-deployment-platform.md),
 [ADR-002](../adr/002-modular-architecture-with-isolated-analyzer-worker.md), and

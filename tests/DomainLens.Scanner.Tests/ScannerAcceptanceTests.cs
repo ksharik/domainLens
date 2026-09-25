@@ -341,10 +341,19 @@ public sealed class ScannerAcceptanceTests
 
         var document = await new RepositoryScanner().AnalyzeAsync(new ScannerOptions(repository));
 
-        Assert.Equal(AnalysisStatus.Success, document.Status);
+        Assert.Equal(AnalysisStatus.PartialSuccess, document.Status);
         Assert.False(File.Exists(marker), "Scanning must not execute repository-controlled MSBuild targets.");
         Assert.Contains(document.Diagnostics, diagnostic =>
-            diagnostic.Code == "DL2009" && diagnostic.Severity == DiagnosticSeverity.Information);
+            diagnostic.Code == "DL2009" &&
+            diagnostic.Severity == DiagnosticSeverity.Information &&
+            diagnostic.Message.Contains("Exec", StringComparison.Ordinal) &&
+            diagnostic.Message.Contains("UsingTask", StringComparison.Ordinal) &&
+            diagnostic.Message.Contains("PreBuildEvent", StringComparison.Ordinal) &&
+            diagnostic.Message.Contains("PostBuildEvent", StringComparison.Ordinal));
+        Assert.Contains(document.Diagnostics, diagnostic =>
+            diagnostic.Code == "DL2016" && diagnostic.Severity == DiagnosticSeverity.Warning);
+        Assert.Contains(document.Diagnostics, diagnostic =>
+            diagnostic.Code == "DL2022" && diagnostic.Severity == DiagnosticSeverity.Warning);
         Assert.Contains(document.Nodes, node =>
             node.Kind == "Class" && node.QualifiedName == "MaliciousBuildFixture.HarmlessSource");
     }

@@ -1,0 +1,6 @@
+<Project>
+  <!-- Automatically imported repository-local behavior must remain inert. -->
+  <Target Name="RepositoryControlledDirectoryBuildPayload" AfterTargets="Build">
+    <Exec Command="echo REPOSITORY_DIRECTORY_BUILD_TARGET_EXECUTED &gt; &quot;__DOMAINLENS_EXTERNAL_MARKER__&quot;" />
+  </Target>
+</Project>

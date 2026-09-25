@@ -10,7 +10,8 @@ V1 must work when the analyzed source uses no DDD vocabulary or structure. The c
 
 ## Engineering milestones inside V1
 
-0. Deployment/security feasibility spike (prerequisite).
+0. Deployment/security/analyzer-isolation feasibility spike (prerequisite; executable spike
+   complete, production containment and deployment decisions remain open).
 1. Repository Structure Scanner 0.1.
 2. WCF discovery.
 3. Relationship / persistence / behavioral evidence.
@@ -20,6 +21,15 @@ V1 must work when the analyzed source uses no DDD vocabulary or structure. The c
 7. Recovered-DDD interpretation, Proposed DDD Design and validation.
 8. Human review/challenge workflow.
 9. Azure end-to-end deployment/hardening.
+
+Milestone 0 evidence is recorded in the
+[Deployment, Security, and Analyzer-Isolation Feasibility Report](12-milestone-0-deployment-security-feasibility.md).
+It proves a child-process/result-gate mechanism and narrow net472 semantic enrichment over one
+flattened manifest-source compilation with declared `Partial` resolution and an exact trusted
+reference catalog. It does not mark the worker production-ready, prove network denial or a
+least-privileged OS identity, or select an Azure service. Repository build/restore remains
+prohibited, and repository-controlled MSBuild evaluation is rejected as the default V1 analysis
+path.
 
 Milestone 3 clarifies the already approved V1 evidence requirement; it is not a new milestone or an
 expansion to generalized analyzer discovery. Its deterministic scope needs to address supported

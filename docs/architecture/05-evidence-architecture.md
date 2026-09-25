@@ -11,6 +11,10 @@ remember an entire repository.
 > the process.**
 
 The current implementation is the authority for the Milestone 1 wire model.
+Milestone 0 also contains a separate legacy-semantic feasibility artifact; it
+does not alter `domainlens.evidence.v1` or silently turn compiler bindings into
+Evidence Graph records. Its boundary is summarized in the
+[Milestone 0 Feasibility Report](../12-milestone-0-deployment-security-feasibility.md).
 This chapter labels unimplemented designs as **PLANNED — Product V1** or
 **FUTURE**. See [Analysis Pipeline](04-analysis-pipeline.md) for stage ordering
 and [Repository Structure Scanner 0.1](../11-milestone-1-repository-scanner.md)
@@ -433,6 +437,43 @@ binding, accessibility, all alias forms, generated code, preprocessor symbol
 evaluation, and transitive compile behavior are not established. The extractor
 preserves ambiguous/unresolved edges instead of upgrading a textual match to a
 fact.
+
+## CURRENT — Milestone 0 semantic-enrichment feasibility result
+
+Milestone 0 proves a separate, deterministic `LegacySemanticAnalysisResult`
+for a narrow .NET Framework 4.7.2 profile. The analyzer revalidates manifest
+source paths, lengths, and SHA-256 hashes, then flattens every manifest-listed
+C# source into one synthetic `CSharpCompilation`. It queries `SemanticModel`
+using the exact tool-owned `Microsoft.NETFramework.ReferenceAssemblies.net472`
+catalog. The result declares `RepositoryManifestCSharpSources` compilation
+scope and `Partial` compilation resolution because effective project
+membership, references, target configuration, conditional items, and
+preprocessor settings are not reproduced. It never evaluates repository
+MSBuild, restores/builds or emits the repository, or admits repository
+binaries, analyzers, or generators as compiler inputs.
+
+The child worker returns semantic JSON and its SHA-256 digest alongside the
+Evidence Graph envelope. **PROVEN:** the trusted host requires both artifacts,
+checks both envelope hashes, strict-deserializes them, applies
+`AnalysisGraphValidator`, and applies the manifest-aware
+`LegacySemanticAnalysisValidator` before accepting the attempt. Missing,
+malformed, hash-invalid, unsafe, or graph/semantic-invalid output receives a
+typed process outcome. Structurally valid documents are normalized before the
+trusted validators run; malformed or invalid content is not repaired into
+evidence. The graph snapshot ID
+must equal the identity derived by the trusted staging pass, and the semantic
+metadata descriptors and resolved external assemblies must match the exact
+catalog reconstructed by trusted code. Catalog exactness covers a fixed
+SHA-256 commitment over the complete package DLL set plus deployed
+assembly-name/relative-path descriptors. That drift check is not artifact
+signing or independent deployment attestation; those remain production
+supply-chain responsibilities.
+
+This result records compiler bindings and diagnostics, not business meaning.
+It does not yet contribute nodes/edges to the Evidence Graph, satisfy the
+planned method-body/behavioral evidence contract, or authorize a finding.
+Projection/reconciliation rules, additional trusted framework profiles,
+coverage accounting, and schema evolution remain **OPEN**.
 
 ## PLANNED — Finding Graph traceability
 

@@ -173,7 +173,7 @@ last-writer-wins, priority ordering, or model arbitration is the architecture.
 
 | Analyzer family | Product horizon | Intended deterministic contribution | Likely worker profile |
 |---|---|---|---|
-| Repository / C# structure | CURRENT foundation | Manifest, solutions, projects, dependencies, declarations, and syntax-resolvable relationships with provenance. | Current local process; planned Windows worker. |
+| Repository / C# structure | CURRENT foundation | Manifest, solutions, projects, dependencies, declarations, and syntax-resolvable relationships with provenance. | Local CLI plus the M0 Windows child-worker feasibility path; production Windows worker remains planned. |
 | Classic WCF | PLANNED V1 | Service/data/message contracts, operations, implementations, endpoints, bindings, hosting configuration, and supported relationships. | Windows-oriented legacy .NET worker. |
 | Relationship / persistence / behavioral evidence | PLANNED V1 | Calls, conditions, validation, exceptions, mutations, repository/data access, transaction and state constructs, security checks, messages, external calls, side effects, scheduled behavior, coupling, configuration, and other supported implementation facts. | Windows worker initially. |
 | ASP.NET MVC / MVC.NET | FUTURE | Controllers, actions, routing, filters, models, and supported application relationships. | Windows or .NET-capable profile, to be established. |

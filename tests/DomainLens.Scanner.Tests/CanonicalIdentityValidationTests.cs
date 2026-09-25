@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using DomainLens.Core;
 
 namespace DomainLens.Scanner.Tests;
@@ -72,6 +74,29 @@ public sealed class CanonicalIdentityValidationTests
 
             Assert.False(result.IsValid);
             Assert.Contains(result.Issues, issue => issue.Code == testCase.ExpectedCode);
+        }
+    }
+
+    [Fact]
+    public void Analysis_json_rejects_unknown_wrong_case_missing_and_null_required_members()
+    {
+        var json = AnalysisJson.Serialize(CreateValidDocument(), indented: false);
+        var missing = JsonNode.Parse(json)!.AsObject();
+        Assert.True(missing.Remove("nodes"));
+        var nullCollection = JsonNode.Parse(json)!.AsObject();
+        nullCollection["nodes"] = null;
+
+        var invalidDocuments = new[]
+        {
+            json.Insert(1, "\"unexpected\":true,"),
+            json.Replace("\"schemaVersion\"", "\"SchemaVersion\"", StringComparison.Ordinal),
+            missing.ToJsonString(),
+            nullCollection.ToJsonString(),
+        };
+
+        foreach (var invalid in invalidDocuments)
+        {
+            Assert.ThrowsAny<JsonException>(() => AnalysisJson.Deserialize(invalid));
         }
     }
 
