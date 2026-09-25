@@ -20,7 +20,8 @@ emits a versioned Evidence Graph as canonical JSON. It does not evaluate
 MSBuild, restore or build the analyzed repository, execute repository content,
 or invoke an LLM.
 
-The implementation targets the .NET 9 SDK pinned by `global.json`.
+The implementation targets .NET 10 LTS. `global.json` pins the minimum .NET 10
+SDK feature band and permits roll-forward to the latest installed feature band.
 
 ```powershell
 dotnet run --project src/DomainLens.Cli -- scan `
