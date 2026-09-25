@@ -184,8 +184,9 @@ flowchart TD
     User[DomainLens user]
     Intake[Public Git URL validation and repository intake]
     Snapshot[Repository snapshot and immutable manifest]
-    Discovery[Technology discovery]
-    Plan[Versioned analysis plan]
+    Qualification[Bounded .NET/WCF support qualification]
+    AnalyzerConfig[Configured approved V1 analyzer capabilities]
+    Unsupported[Unsupported-repository diagnostics]
     Structural[Structural analyzers]
     WCF[WCF analyzer]
     Relations[Relationship and persistence analyzers]
@@ -204,10 +205,14 @@ flowchart TD
     end
     Results[Persistent results and result explorer]
 
-    User --> Intake --> Snapshot --> Discovery --> Plan
-    Plan --> Structural
-    Plan --> WCF
-    Plan --> Relations
+    User --> Intake --> Snapshot --> Qualification
+    Qualification -->|unsupported| Unsupported
+    Qualification -->|supported| Structural
+    Qualification -->|supported| WCF
+    Qualification -->|supported| Relations
+    AnalyzerConfig --> Structural
+    AnalyzerConfig --> WCF
+    AnalyzerConfig --> Relations
     Structural --> Evidence
     WCF --> Evidence
     Relations --> Evidence
@@ -224,12 +229,13 @@ flowchart TD
   size controls, captures the selected revision, and transfers it into an
   isolated worker workspace. Branch/tag/commit selection and redirect policy
   are not yet designed.
-- **Technology discovery** establishes analyzable languages and frameworks
-  deterministically. It must not infer a technology merely because the model
-  expects it.
-- **Analysis planning** selects versioned analyzers and their dependencies from
-  discovered facts and requested scope. The plan is persisted so a resumed run
-  does not silently change tools.
+- **V1 support qualification** may deterministically establish only whether the repository can use
+  the known legacy C#/.NET Framework/WCF path and produce explicit unsupported or partial-coverage
+  diagnostics. It does not inventory arbitrary technologies, choose among analyzer families, or
+  generate an Analysis Plan.
+- **Configured analyzer invocation** uses the trusted, approved V1 structural, WCF, relationship,
+  and persistence capabilities. Their identities, versions, ordering, and bounded configuration
+  are retained with the run so retry or resume does not silently change tools.
 - **Structural and framework analysis** extend the Evidence Graph. The first
   workload adds legacy .NET Framework and WCF analysis; subsequent analyzers
   must use the same evidence/provenance contract.
@@ -266,9 +272,9 @@ commands, retry counts, and queue technology are OPEN DECISIONS.
 stateDiagram-v2
     [*] --> Queued
     Queued --> AcquiringRepository
-    AcquiringRepository --> DiscoveringTechnology
-    DiscoveringTechnology --> PlanningAnalysis
-    PlanningAnalysis --> RunningAnalyzers
+    AcquiringRepository --> QualifyingRepository
+    QualifyingRepository --> PreparingConfiguredAnalysis
+    PreparingConfiguredAnalysis --> RunningAnalyzers
     RunningAnalyzers --> BuildingEvidence
     BuildingEvidence --> BuildingContext
     BuildingContext --> Reasoning
@@ -279,8 +285,8 @@ stateDiagram-v2
     MaterializingKnowledge --> Completed
 
     AcquiringRepository --> Failed
-    DiscoveringTechnology --> Failed
-    PlanningAnalysis --> Failed
+    QualifyingRepository --> Failed
+    PreparingConfiguredAnalysis --> Failed
     RunningAnalyzers --> PartiallyCompleted: bounded recoverable gaps
     BuildingEvidence --> Failed: invalid evidence invariants
     BuildingContext --> Failed
@@ -306,10 +312,10 @@ design remains `Proposed`, and an accepted `Inferred` recovery never becomes `Ob
 
 Resumability requires durable stage inputs and outputs rather than replaying an
 opaque agent conversation. At a minimum, a future checkpoint must identify the
-repository snapshot, analysis plan, analyzer versions, evidence schema and
-hash, ContextPack version, model/skill/prompt versions, findings revision, and
-human decisions. A stage may be retried only when its input identities match;
-otherwise a new analysis run or explicit revision is required.
+repository snapshot, configured V1 analyzer profile/job and analyzer versions, bounded
+configuration, evidence schema and hash, ContextPack version, model/skill/prompt versions,
+findings revision, and human decisions. A stage may be retried only when its input identities
+match; otherwise a new analysis run or explicit revision is required.
 
 `PartialSuccess` at the analyzer level may still permit semantic analysis if
 coverage gaps are visible in the ContextPack and findings. It must never be
@@ -358,6 +364,22 @@ DDD: Decomposition separately asks how the existing application could be
 separated or reorganized, while modernization asks what future implementation
 architecture should be built.
 
+Generalized automatic technology discovery and generated Analysis Plans also remain FUTURE:
+
+```mermaid
+flowchart LR
+    Repository[Repository snapshot]
+    Discovery[Automatic Technology Discovery]
+    Plan[Generated Analysis Plan]
+    Families[Applicable Analyzer Families]
+
+    Repository --> Discovery --> Plan --> Families
+```
+
+If approved later, this selection remains deterministic, policy-controlled, and constrained to a
+trusted analyzer catalog. It is not delegated to a model and does not change the configured V1
+.NET/WCF path retroactively.
+
 ## Open decisions
 
 1. **Pipeline state contract:** exact state names, transition API, checkpoint
@@ -369,8 +391,9 @@ architecture should be built.
 4. **Snapshot acquisition:** Git implementation, revision selection semantics,
    submodule and Git LFS policy, and treatment of repositories that change
    during acquisition.
-5. **Analyzer plan contract:** dependency ordering, capability negotiation,
-   version selection, and compatibility rules.
+5. **Configured V1 analyzer-job contract:** approved capability versions, fixed dependency/order
+   rules, bounded configuration, support-qualification outcomes, and compatibility rules. Generalized
+   analyzer selection and generated Analysis Plans are a FUTURE decision.
 6. **Human review transitions:** which decisions are editable, who can approve
    them, and how accepted findings are superseded.
 7. **Structured output repair:** schema, bounded retry count, and escalation to

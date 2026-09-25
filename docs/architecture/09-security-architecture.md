@@ -71,7 +71,7 @@ isolation boundaries.
 - repository selection and snapshot integrity;
 - evidence/finding provenance and the distinction between Observed, Inferred,
   and Proposed;
-- persisted customer data and tenant separation;
+- persisted repository, analysis, and review data plus access/ownership isolation;
 - pipeline control state and human decisions;
 - logs, prompts, model responses, and generated exports; and
 - software supply chain and analyzer/tool versions.
@@ -85,14 +85,14 @@ isolation boundaries.
 | Project/build content | `Exec`, custom tasks, imports, analyzers, generators, build events, package restore hooks, binaries, scripts. |
 | Comments, documentation, and strings | Prompt injection, fake policy, malicious instructions, data exfiltration requests. |
 | Model output | Fabricated evidence IDs, invalid schema, permission escalation, unsafe tool/action requests, source leakage. |
-| Service user or tenant | Unauthorized repository access, cross-tenant reads, abusive job volume, tampering with review decisions. |
+| External caller or service consumer | Unauthorized repository access, cross-owner or cross-scope reads, abusive job volume, tampering with review decisions. |
 | Dependencies and operations | Compromised packages/images, overprivileged identity, secret leakage in logs, stale vulnerable workers. |
 
 ## CURRENT — Milestone 1 trust model
 
 Milestone 1 accepts an already-local directory and optional solution selection.
 The invoker authorizes both the input directory and output artifact path. There
-is no Web/API tier, repository URL intake, identity/tenant model, persistent
+is no Web/API tier, repository URL intake, identity/access model, persistent
 database, cloud deployment, model call, agent tool loop, or isolated analyzer
 worker in the current code.
 
@@ -202,7 +202,7 @@ The 23-test suite includes checks that:
 
 The test suite does not constitute a complete sandbox or malware assessment.
 It currently has no portable Unix FIFO/socket test and no live isolated-worker,
-SSRF, authentication, tenant-isolation, or prompt-injection test because those
+SSRF, hosted identity/ownership/access-isolation, or prompt-injection test because those
 capabilities do not exist yet.
 
 ### Current residual risks and constraints
@@ -277,8 +277,8 @@ not it becomes a separately deployed service. Each job should receive:
 
 The coordinator must treat worker evidence as untrusted input until schema,
 canonical hash, identity, provenance, size, and policy validation succeed. A
-worker must not receive persistence, model-provider, signing, or other tenant
-credentials. Worker orchestration technology is deliberately not selected
+worker must not receive persistence, model-provider, signing, end-user/session, or other
+caller-scope credentials. Worker orchestration technology is deliberately not selected
 here, and AKS is not required for V1.
 
 ### Prompt-injection and model boundary
@@ -317,19 +317,25 @@ boundary. A V1 egress policy must define:
 
 Public availability does not make source harmless or remove licensing,
 personal-data, or accidentally committed secret concerns. Private repository
-support must not ship until repository credentials, egress, retention, and
-tenant authorization policies are explicitly approved.
+support must not ship until repository credentials, ownership/access-control, egress, and retention
+policies are explicitly approved. If multi-tenancy is selected, its tenant-isolation policy is an
+additional prerequisite.
 
-### Identity, authorization, and tenant isolation
+### Identity, ownership, authorization, and access isolation
 
-Product V1 requires deterministic authorization for repository submissions,
-analysis reads, cancellations, human decisions, exports, and administrative
-operations. The Web/API/Core boundary—not the model—must enforce it. Persistent
-records and object/workspace storage must be tenant-scoped, and identifiers
-must not be authorization tokens.
+Product V1 requires deterministic authorization decisions for repository submissions, analysis
+reads, cancellations, human decisions, exports, and administrative operations. The Web/API/Core
+boundary—not the model—must enforce them. A future policy may explicitly permit an anonymous
+operation; missing identity is never implicit permission.
 
-Authentication provider, role vocabulary, sharing policy, tenancy model, and
-whether anonymous public-repository scans are permitted are OPEN DECISIONS.
+Persistent records, artifacts, analysis operations, and workspaces must be access-controlled and
+isolated according to the approved identity, ownership, and authorization model. Identifiers,
+including opaque or non-guessable identifiers, must not themselves grant authorization. If
+multi-tenancy is selected, tenant isolation must then be enforced.
+
+Whether end-user authentication is required, the authentication provider, the
+user/principal/session and ownership model, anonymous access, tenancy, roles/permissions, sharing,
+administrator capabilities, and protocols are **OPEN DECISIONS**.
 
 ### Secrets and service identities
 
@@ -358,10 +364,10 @@ mutation authority.
 
 ### Persistence and audit
 
-Product V1 should encrypt data in transit and at rest, apply tenant-aware
-access, retain immutable snapshot/finding revisions and human decisions, and
-record security-relevant state transitions. Audit records should identify the
-actor or workload identity, action, target, result, and versioned policy/tool
+Product V1 should encrypt data in transit and at rest, apply access controls and isolation under the
+approved identity/ownership model, retain immutable snapshot/finding revisions and human decisions,
+and record security-relevant state transitions. Audit records should identify the applicable
+caller, session, principal, or workload context, action, target, result, and versioned policy/tool
 context without copying unrestricted source or prompts into logs.
 
 Retention duration, deletion semantics, key strategy, regional placement, and
@@ -382,7 +388,7 @@ DECISIONS.
 | Wall-clock enforcement | Not implemented by CLI | Coordinator and worker host |
 | Prompt-injection boundary | No model exists | Context builder, reasoning runtime, tool policy |
 | Model output validation | No model exists | Finding validator |
-| Authentication/authorization/tenancy | Not implemented | Web/API/Core and persistence |
+| Authorization, ownership, and access isolation (identity/authentication/tenancy model open) | Not implemented | Web/API/Core and persistence |
 | Secret storage and service identities | Not implemented | Deployment platform and trusted services |
 | Source egress/redaction policy | No model egress exists | Context/model gateway and governance |
 
@@ -400,8 +406,9 @@ As each planned boundary becomes executable, its controls need automated and
 operational verification. Expected suites include URL/redirect/DNS SSRF cases,
 malicious Git fixtures, symlink/junction/race cases on supported worker OSes,
 resource and timeout termination, no-egress assertions, credential absence,
-prompt-injection corpora, fabricated-evidence rejection, tenant authorization,
-log redaction, dependency/image scanning, and incident/audit replay.
+prompt-injection corpora, fabricated-evidence rejection, authorization and cross-scope isolation
+under the approved access model (including tenant cases if selected), log redaction,
+dependency/image scanning, and incident/audit replay.
 
 Security tests should assert the denied side effect as the existing malicious
 build fixture does; merely observing a diagnostic is not proof that an unsafe
@@ -416,14 +423,15 @@ action could not occur.
 3. **Network policy:** worker deny rules, package/reference metadata needs, and
    any mediated outbound service.
 4. **Production limits:** repository/object/file sizes, CPU/memory/disk quotas,
-   timeouts, concurrency, and user/tenant rate limits.
+   timeouts, concurrency, and request/session/principal/ownership-scope or tenant rate limits as applicable.
 5. **Safe semantic analysis:** whether and how MSBuild/project semantics can be
    obtained without executing repository-controlled tasks, analyzers, restore,
    generators, or binaries.
 6. **Source egress:** allowed model providers, regions, retention/training
    terms, redaction, consent, and public versus future private repository rules.
-7. **Identity and tenancy:** authentication provider, authorization roles,
-   sharing, administrator capabilities, and tenant data partitioning.
+7. **Identity, ownership, and access:** authentication requirement/provider;
+   user/principal/session and ownership model; anonymous access; roles/permissions; sharing;
+   administrator capabilities; tenancy and tenant data partitioning if selected; and protocols.
 8. **Artifact authenticity:** whether Evidence Graphs, findings, and exports
    require signatures or authenticated envelopes in addition to hashes.
 9. **Retention and deletion:** lifetimes for repositories, source blobs,

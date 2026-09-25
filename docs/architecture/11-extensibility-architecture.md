@@ -6,27 +6,28 @@ DomainLens is language- and framework-extensible. Legacy C#/.NET Framework/WCF i
 supported workload, not the architectural boundary of the platform.
 
 - **CURRENT — Milestone 1:** one built-in C# Repository Structure Scanner creates language-neutral Evidence Graph records for repository, solution, project, dependency, namespace, type, and member structure. There is no analyzer plugin system, technology-discovery service, or generated Analysis Plan.
-- **PLANNED — Product V1:** deterministic technology discovery, a fixed Analysis Plan, allowlisted .NET/WCF and relationship/persistence analyzers, and normalized evidence contribution/validation contracts.
-- **FUTURE:** ASP.NET, modern .NET, Java/Jakarta, Spring, database, OpenAPI, messaging, and other analyzer families, including Linux-capable workers where appropriate.
+- **PLANNED — Product V1:** a configured, approved legacy C#/.NET Framework/WCF analyzer path, including structural, WCF, relationship/persistence capabilities and normalized evidence contribution/validation contracts. A bounded deterministic qualification check may reject unsupported input.
+- **FUTURE:** generalized automatic technology discovery, generated Analysis Plans and analyzer-family selection; ASP.NET, modern .NET, Java/Jakarta, Spring, database, OpenAPI, messaging, and other analyzer families; and Linux-capable workers where appropriate.
 
 This document defines the concerns an analyzer boundary must satisfy. It deliberately does not
 invent a C# interface, package-loading mechanism, plugin manifest schema, or analyzer-specific data
 model before those components are designed.
 
-## Extensibility flow
+## Extensibility flows by horizon
+
+### PLANNED V1 — configured .NET/WCF path
 
 ```mermaid
 flowchart LR
     snapshot["Immutable Repository Snapshot"]
-    discovery["Deterministic Technology Discovery"]
-    plan["Fixed Analysis Plan"]
-    catalog["Trusted allowlisted Analyzer Catalog"]
+    profile["Configured approved V1 analyzer profile"]
+    catalog["Trusted .NET/WCF Analyzer Set"]
+    execute["Bounded configured analyzer execution"]
 
-    subgraph worker["Compatible isolated worker profile"]
-        foundation["Repository / language structural analyzer"]
-        framework["Framework analyzer"]
+    subgraph worker["Isolated Windows worker profile"]
+        foundation["Repository / C# structural analyzer"]
+        framework["Classic WCF analyzer"]
         persistence["Persistence / data analyzer"]
-        integration["API / messaging / integration analyzer"]
         relationships["Relationship enrichment"]
     end
 
@@ -35,27 +36,44 @@ flowchart LR
     graph["Versioned Evidence Graph"]
     diagnostics["Coverage and analyzer diagnostics"]
 
-    snapshot --> discovery
-    discovery --> plan
-    catalog --> plan
-    plan --> foundation
-    plan --> framework
-    plan --> persistence
-    plan --> integration
-    plan --> relationships
+    snapshot --> execute
+    profile --> execute
+    catalog --> execute
+    execute --> foundation
+    execute --> framework
+    execute --> persistence
+    execute --> relationships
     foundation --> normalize
     framework --> normalize
     persistence --> normalize
-    integration --> normalize
     relationships --> normalize
     normalize --> validate
     validate --> graph
     validate --> diagnostics
 ```
 
-Technology discovery and plan selection are deterministic application behavior. A repository may
-contain configuration suggesting an analyzer, but repository content cannot supply executable
-analyzer code, alter the trusted catalog, or turn its own instructions into a plan.
+V1 does not automatically select among analyzer families. A narrow deterministic support check may
+produce an unsupported or partial-coverage diagnostic before this configured path runs, but it is
+not generalized technology inventory or plan generation. Repository content cannot supply
+executable analyzer code or alter the trusted V1 profile.
+
+### FUTURE — generalized discovery and analyzer selection
+
+```mermaid
+flowchart LR
+    snapshot["Immutable Repository Snapshot"]
+    discovery["Automatic Technology Discovery"]
+    plan["Generated Analysis Plan"]
+    catalog["Trusted allowlisted Analyzer Catalog"]
+    families["Applicable Analyzer Families"]
+
+    snapshot --> discovery --> plan --> families
+    catalog --> plan
+```
+
+If this future capability is approved, technology discovery and plan selection remain deterministic
+trusted-application behavior. Repository content may provide observed indicators, but cannot supply
+executable analyzer code, alter the trusted catalog, or turn its own instructions into a plan.
 
 ## Core neutrality
 
@@ -93,7 +111,7 @@ behavior, rules, invariants, data relationships, mutations, transactions, workfl
 operations, persistence, messages, security, dependencies, and coupling. Semantic reasoning then
 decides whether those facts support Recovered Domain Knowledge or a Proposed DDD Design.
 
-## Technology discovery and the Analysis Plan
+## FUTURE — Technology discovery and the Analysis Plan
 
 Technology Discovery examines the immutable snapshot using safe, deterministic rules. Its output
 describes observed indicators and limitations, such as project formats, languages, configuration
@@ -111,20 +129,21 @@ produce a fixed, versioned plan. A plan should eventually make the following con
 - reasons an analyzer was selected, skipped, or could not run; and
 - cancellation/deadline context.
 
-The exact plan schema and selection rules are open decisions. In V1, plans are created from a
-predefined allowlist; dynamic model-generated analyzers or arbitrary agent composition are out of
-scope.
+The exact plan schema and selection rules are future open decisions. Product V1 has no generated
+Analysis Plan: it records the configured .NET/WCF analyzer job, capability versions, and bounded
+configuration needed for reproducibility. Dynamic model-generated analyzers or arbitrary agent
+composition remain out of scope.
 
 ## Analyzer contract concerns
 
-Any future analyzer contract must address the following without assuming a particular programming
-language or loading mechanism:
+Any analyzer contract—configured directly for V1 or selected by a future generated plan—must
+address the following without assuming a particular programming language or loading mechanism:
 
 | Concern | Required architectural behavior |
 |---|---|
 | Identity and version | A stable analyzer/extractor identity and version accompany its evidence so results can be reproduced, compared, invalidated, or migrated. |
 | Capabilities | The analyzer declares the technologies/artifact types it understands, prerequisites, and compatible worker profiles. |
-| Input boundary | The analyzer receives only the immutable snapshot view and bounded plan/configuration required for its task. It cannot expand its own permissions. |
+| Input boundary | The analyzer receives only the immutable snapshot view and bounded approved job/configuration required for its task. A future generated plan may supply that configuration, but the analyzer cannot expand its own permissions. |
 | Determinism | Given the same captured bytes, analyzer/rule version, and declared configuration, deterministic analysis produces the same normalized contribution or explicit diagnostics. |
 | Evidence output | Observations use the normalized Evidence Model, carry source or metadata provenance, resolution basis/quality, and stable identities, and never contain live parser/runtime objects. DDD-like names remain declarations or relationships, not preclassified domain roles. |
 | Coverage | Unsupported, ambiguous, malformed, excluded, conditional, or inaccessible input yields typed diagnostics and appropriate partial/unresolved resolution rather than guessed facts. |
@@ -204,8 +223,8 @@ framework concepts can be encoded without versioning.
 
 - **OPEN DECISION — analyzer packaging:** built-in modules, signed packages, separately deployed workers, or another trusted distribution model.
 - **OPEN DECISION — registration:** catalog manifest, dependency injection registration, or another allowlisted discovery mechanism. Repository-driven dynamic loading is not an option.
-- **OPEN DECISION — contract shape:** the concrete analyzer, technology-observation, Analysis Plan, contribution, and diagnostic schemas/interfaces.
-- **OPEN DECISION — plan selection:** deterministic rule precedence, user overrides, conflicting technology indicators, and skipped-analyzer semantics.
+- **OPEN DECISION — V1 contract shape:** the concrete analyzer, configured job/profile, contribution, qualification-result, and diagnostic schemas/interfaces for the known .NET/WCF path.
+- **FUTURE DECISION — technology discovery and Analysis Plan:** technology-observation schema, deterministic rule precedence, user overrides, conflicting indicators, applicable-family selection, and skipped-analyzer semantics.
 - **OPEN DECISION — graph composition:** namespace governance for kinds/rules, identity collisions, duplicate contributions, precedence, and cross-analyzer reference resolution.
 - **OPEN DECISION — version compatibility:** Evidence Model evolution, analyzer/core compatibility ranges, result migration, and re-analysis triggers.
 - **OPEN DECISION — worker scheduling:** capability/OS matching, resource classes, analyzer co-location, and isolation profiles.

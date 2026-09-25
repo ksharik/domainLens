@@ -53,7 +53,7 @@ flowchart LR
     git --> fetch
     fetch --> snapshot
     snapshot --> workerHost
-    coordinator -->|"fixed analysis plan; deadline; cancellation"| workerHost
+    coordinator -->|"configured .NET/WCF job; deadline; cancellation"| workerHost
     analyzers -->|"untrusted bounded structured result"| resultGate
     resultGate -->|"accepted evidence and diagnostics"| coordinator
     coordinator --> durable
@@ -77,10 +77,10 @@ interpret repository content as DomainLens instructions.
 
 ### Untrusted-content worker zone
 
-The worker receives only the selected snapshot, a fixed analysis plan, bounded configuration, a
-run/job correlation value, and cancellation/deadline information. Its analyzer binaries and rules
-are trusted, deployed DomainLens artifacts; repository-supplied analyzers, generators, build tasks,
-scripts, plugins, and instructions are not trusted capabilities.
+The worker receives only the selected snapshot, a fixed configured V1 .NET/WCF analyzer job,
+bounded configuration, a run/job correlation value, and cancellation/deadline information. Its
+analyzer binaries and rules are trusted, deployed DomainLens artifacts; repository-supplied
+analyzers, generators, build tasks, scripts, plugins, and instructions are not trusted capabilities.
 
 The worker returns normalized Evidence Graph contributions and diagnostics through an output gate.
 It does not receive persistence, model, source-control, or application-user credentials. Any
@@ -106,7 +106,7 @@ sequenceDiagram
 
     User->>Core: Start analysis
     Core->>Core: Validate request and establish run state
-    Core->>Host: Dispatch snapshot + fixed plan + limits
+    Core->>Host: Dispatch snapshot + configured .NET/WCF job + limits
     Host->>Workspace: Allocate clean bounded workspace
     Host->>Analyzer: Start job with deadline and cancellation
     Analyzer->>Workspace: Read untrusted snapshot as data
@@ -149,9 +149,9 @@ analyzers, and build events do not execute. The phrase “semantic analysis” i
 to build an analyzed repository.
 
 Linux worker profiles are FUTURE capabilities for Java, Spring, modern cross-platform stacks, and
-other analyzers whose toolchains do not require the Windows legacy environment. The Analysis Plan
-will eventually declare the required worker capabilities rather than hard-code an operating system
-in the language-neutral core.
+other analyzers whose toolchains do not require the Windows legacy environment. A FUTURE generated
+Analysis Plan may declare required worker capabilities rather than hard-code an operating system in
+the language-neutral core; Product V1 does not require that planner.
 
 ## Failure, partial success, and recovery
 
@@ -172,7 +172,7 @@ diagnostics.
 - **OPEN DECISION — Git retrieval placement:** whether bounded clone/fetch runs in a dedicated intake process, in a worker profile, or in another isolated boundary.
 - **OPEN DECISION — Windows isolation technology:** the concrete host, sandbox, filesystem, job-control, and termination mechanisms for the first worker.
 - **OPEN DECISION — work dispatch:** in-process scheduling, a durable queue, or another transport, including delivery and lease semantics.
-- **OPEN DECISION — resource profiles:** default and maximum CPU, memory, process, disk, file, byte, and wall-clock budgets per analyzer plan.
+- **OPEN DECISION — resource profiles:** default and maximum CPU, memory, process, disk, file, byte, and wall-clock budgets per configured analyzer job.
 - **OPEN DECISION — network policy:** whether any analyzer profile requires egress and how destinations, DNS, redirects, and rebinding are controlled.
 - **OPEN DECISION — workspace lifecycle:** encryption, secure disposal, debugging retention, and cleanup verification.
 - **OPEN DECISION — cancellation guarantees:** grace period, forced termination, output acceptance after cancellation, and recovery from an unresponsive worker.

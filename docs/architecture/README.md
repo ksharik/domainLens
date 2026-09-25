@@ -47,7 +47,7 @@ The Domain Knowledge Model is one canonical asset, not two databases. Its semant
 | [08 — Persistence Architecture](08-persistence-architecture.md) | Durable concepts, immutability, versioning, and operational state |
 | [09 — Security Architecture](09-security-architecture.md) | Threat boundaries and current/planned controls |
 | [10 — Deployment Architecture](10-deployment-architecture.md) | Conceptual Azure roles without premature service selection |
-| [11 — Extensibility Architecture](11-extensibility-architecture.md) | Technology discovery, analysis planning, and analyzer contracts |
+| [11 — Extensibility Architecture](11-extensibility-architecture.md) | Configured V1 analyzers, future technology discovery/analysis planning, and analyzer contracts |
 | [12 — Observability and Operations](12-observability-and-operations.md) | Telemetry, diagnostics, audit, reliability, and cost visibility |
 
 ## Current implementation and target product
@@ -55,7 +55,7 @@ The Domain Knowledge Model is one canonical asset, not two databases. Its semant
 | Capability | CURRENT — Scanner 0.1 | PLANNED V1 |
 |---|---|---|
 | Input | Local repository path and optional solution selection | Public Git URL, selected immutable revision, and validated snapshot |
-| Analysis | Bounded inventory, declarative solution/project reading, syntax-only C# extraction | Technology discovery plus planned structural, WCF, relationship, and persistence analyzers |
+| Analysis | Bounded inventory, declarative solution/project reading, syntax-only C# extraction | Configured, approved legacy C#/.NET Framework/WCF structural, WCF, relationship, and persistence analyzers; generalized automatic technology discovery and generated Analysis Plans are FUTURE |
 | Output | Validated `domainlens.evidence.v1` Evidence Graph in canonical JSON | Evidence Graph, validated Finding Graph, one versioned Domain Knowledge Model with recovered and proposed-DDD views, and evidence-backed presentations |
 | Runtime | Local CLI and in-process libraries | Azure-hosted UI/API/Core plus an isolated Windows-capable analyzer worker |
 | Reasoning | None | Fixed coordinator workflow, sealed Context Packs, allowlisted skills, and structured model output |
@@ -76,22 +76,33 @@ When documents appear to overlap, apply these rules:
 
 Logical component names do not imply independently deployed services. The planned analyzer worker is a required isolation boundary; other V1 components may remain modules in a modular application unless an approved decision establishes another deployment boundary.
 
+Product V1 has a known analyzer family and does not require generalized automatic technology
+discovery or generated Analysis Plans. The V1 coordinator dispatches the configured, approved
+legacy C#/.NET Framework/WCF analyzer capabilities and may reject an unsupported repository through
+a bounded deterministic qualification check. Automatic selection across analyzer families remains
+FUTURE.
+
+Likewise, references to a DomainLens user, client, or access boundary do not select an identity or
+tenancy model. Persistent data and operations must be access-controlled and isolated under the
+eventually approved identity, ownership, and authorization model, while authentication, anonymous
+access, roles, sharing, and tenancy remain open.
+
 ## Open-decision register
 
 The following choices are intentionally unresolved. Each is owned by the document that supplies its constraints and should be closed by a future ADR or design milestone, not by implication:
 
 | Area | Open decisions | Owner |
 |---|---|---|
-| Intake and identity | Supported Git hosts/protocols/ref forms, redirects, submodules/LFS, user identity, tenancy, and client API versioning | [System Context](01-system-context.md), [Security](09-security-architecture.md) |
+| Intake and identity | Supported Git hosts/protocols/ref forms, redirects, submodules/LFS, authentication requirement/provider, user identity and ownership model, tenancy, anonymous access, roles/permissions, sharing, and client API versioning | [System Context](01-system-context.md), [Security](09-security-architecture.md) |
 | Runtime isolation | Job transport, Windows sandbox/hosting mechanism, worker limits, cancellation guarantees, cleanup, and Windows/Linux routing | [Runtime](03-runtime-architecture.md) |
-| Pipeline | State/checkpoint schema, retry categories and budgets, analysis-plan contract, human-pause expiry, and partial-run completion policy | [Analysis Pipeline](04-analysis-pipeline.md) |
+| Pipeline | State/checkpoint schema, retry categories and budgets, configured V1 analyzer-job contract, human-pause expiry, and partial-run completion policy | [Analysis Pipeline](04-analysis-pipeline.md) |
 | Evidence | Schema evolution, multi-analyzer merge rules, Git revision capture, and cross-snapshot logical identity/rename handling | [Evidence](05-evidence-architecture.md) |
 | Domain knowledge | Concept cardinalities, semantic-view encoding/cross-view relationships, confidence/support semantics, finding projection eligibility, version lineage, and decomposition-result schema | [Domain Knowledge](06-domain-knowledge-architecture.md) |
 | Reasoning and context | Model provider/deployment/retention, structured finding schema, support thresholds, repair budget, ContextPack budget/version, and evaluation gate for semantic retrieval | [Agent and Reasoning](07-agent-reasoning-architecture.md) |
 | Persistence | Storage products, artifact/relational split, transactions, migrations, encryption, retention/deletion, and concurrent updates | [Persistence](08-persistence-architecture.md) |
-| Security | URL/DNS/redirect policy, egress/redaction/consent, secret handling, sandbox technology, workspace sanitization, and audit access | [Security](09-security-architecture.md) |
+| Security | URL/DNS/redirect policy, egress/redaction/consent, secret handling, sandbox technology, workspace sanitization, identity/ownership authorization and isolation, and audit access | [Security](09-security-architecture.md) |
 | Deployment | Azure services, region/DR/network topology, scale model, queues, containers, and any future AKS threshold | [Deployment](10-deployment-architecture.md) |
-| Extensibility | Analyzer registration/loading, contract negotiation, discovery heuristics, capability scheduling, and conformance suite | [Extensibility](11-extensibility-architecture.md) |
+| Extensibility | Analyzer registration/loading, contract negotiation, future discovery heuristics/generated Analysis Plans, capability scheduling, and conformance suite | [Extensibility](11-extensibility-architecture.md) |
 | Operations | Telemetry backend, SLOs, alerts, sampling, retention, redaction, cost budgets, and incident policy | [Observability](12-observability-and-operations.md) |
 
 ## Terminology reconciliations

@@ -87,7 +87,7 @@ must not encode source paths, secrets, user tokens, or other sensitive data.
 | Metric | Track rates, latency, capacity, reliability, coverage, model use, and cost. | Runs/stages started/completed/failed/cancelled, queue time, duration, bytes/files, evidence counts, diagnostic counts, worker resource indicators, tokens, model latency, estimated cost. | Aggregated and low-cardinality; repository paths, symbol names, prompts, and source content are not metric dimensions. |
 | Trace | Correlate a request and its stage/dependency spans across trusted and isolated boundaries. | Analysis Run, intake, snapshot, analyzer dispatch, worker execution, persistence, context build, model invocation, finding validation, review transition. | Span payloads follow the same source/secret redaction policy as logs. |
 | Analysis diagnostic | Explain coverage, ambiguity, unsupported constructs, validation failure, or other result limitations to users and later reasoning. | Stable code, severity, safe message, relevant artifact/evidence references, analyzer/rule/version, stage. | Part of durable analysis results where applicable; not equivalent to an operational incident. |
-| Audit event | Record security- and governance-relevant actions and state transitions. | Actor/workload identity, action, subject ID, prior/new review or pipeline state, policy decision, version, time, outcome. | Append-only according to policy; does not include source content unless explicitly required and approved. |
+| Audit event | Record security- and governance-relevant actions and state transitions. | Applicable caller/session/principal/workload context, action, subject ID, prior/new review or pipeline state, policy decision, version, time, outcome. | Append-only according to policy; does not include source content unless explicitly required and approved. |
 
 ## Required operational views
 
@@ -100,10 +100,11 @@ or log stream alone is not authoritative state.
 
 ### Pipeline-stage timing
 
-Measure queue time and execution time separately for intake, snapshotting, discovery/planning,
-deterministic analyzers, Evidence Graph validation, context construction, model invocation, finding
-validation, human waiting, Domain Knowledge projection, and persistence. Human wait time must not
-be reported as compute latency.
+Measure queue time and execution time separately for intake, snapshotting, bounded V1 support
+qualification/configured-job preparation, deterministic analyzers, Evidence Graph validation,
+context construction, model invocation, finding validation, human waiting, Domain Knowledge
+projection, and persistence. Human wait time must not be reported as compute latency. If future
+automatic technology discovery and planning are introduced, they receive their own stage spans.
 
 ### Worker health and failure
 
@@ -136,7 +137,7 @@ Durable results should retain versions that can change meaning or reproducibilit
 - DomainLens application and Evidence Model schema;
 - repository snapshot and manifest;
 - analyzer/extractor and rule versions;
-- Analysis Plan version/configuration;
+- configured V1 analyzer profile/job capability versions and bounded configuration, or a future Analysis Plan identity when that capability exists;
 - ContextPack recipe and schema;
 - skill and prompt-contract version;
 - model provider/deployment/version when available;
@@ -171,7 +172,7 @@ classification rather than matching log message text.
 Retries must preserve attempt history and idempotency boundaries. They must not overwrite earlier
 evidence or finding revisions without lineage.
 
-- Deterministic stages may be retried only against the same identifiable inputs, plan, analyzer versions, and configuration when equivalence is claimed.
+- Deterministic stages may be retried only against the same identifiable inputs, configured analyzer job, analyzer versions, and configuration when equivalence is claimed.
 - A worker job retry creates a distinct attempt correlation value even when it belongs to the same pipeline stage.
 - A model structured-output repair or retry records the initiating validation failure, skill/model/version, and new invocation identity.
 - Human-directed re-analysis creates a new finding revision or analysis step; it does not edit deterministic evidence in place.
@@ -198,7 +199,7 @@ knowledge.
 - Sanitize control characters and bound event/property sizes before export.
 - Redact secrets before telemetry leaves its producing boundary; a downstream telemetry backend is not the primary secret filter.
 - Keep high-cardinality identifiers out of metric dimensions.
-- Apply role-based access, retention, encryption, and regional policy to logs, traces, and audit data.
+- Apply the access controls required by the approved identity, ownership, and authorization model, plus retention, encryption, and regional policy, to logs, traces, and audit data.
 - Ensure telemetry failures do not bypass analysis validation or silently change pipeline state.
 
 ## Service objectives and alerting

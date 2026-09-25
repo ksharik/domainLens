@@ -14,8 +14,12 @@ make that evolution costly and distort the shared evidence model.
 ## Decision
 
 DomainLens core and its normalized Evidence Model remain language- and
-framework-neutral. Technology discovery and an Analysis Plan select applicable
-analyzers. Analyzer families contribute normalized nodes, relationships,
+framework-neutral. Product V1 dispatches a configured, approved legacy
+C#/.NET Framework/WCF analyzer set; it does not require generalized automatic
+technology discovery or a generated Analysis Plan. The architecture supports
+future deterministic technology discovery and Analysis Plan generation to
+select applicable analyzer families when that capability is separately
+approved. Analyzer families contribute normalized nodes, relationships,
 evidence, provenance, diagnostics, and coverage/resolution information through
 application-owned contracts.
 

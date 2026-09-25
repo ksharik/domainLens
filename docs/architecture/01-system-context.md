@@ -53,7 +53,7 @@ flowchart LR
     model["LLM / model provider"]
     azure["Microsoft Azure platform"]
     chatgpt["Future ChatGPT client or integration"]
-    idp["Future external identity provider"]
+    idp["Potential external identity provider\nOPEN DECISION"]
 
     dl["DomainLens\nPLANNED V1 system"]
 
@@ -65,7 +65,7 @@ flowchart LR
     model -->|"untrusted structured candidate findings"| dl
     dl -->|"hosting, compute, storage, configuration, telemetry"| azure
     chatgpt -.->|"future API client"| dl
-    dl -.->|"future authentication or federation"| idp
+    dl -.->|"authentication or federation if selected"| idp
 ```
 
 The diagram treats DomainLens as one system. Names such as Web UI, Pipeline Coordinator, Evidence
@@ -82,16 +82,18 @@ deployed services.
 | LLM/model provider | PLANNED V1 | Receives a bounded, task-specific ContextPack and returns a structured candidate analysis result. | The model has no unrestricted repository access. Its output is untrusted until schema, evidence, and policy validation succeeds, and it cannot create Observed evidence. |
 | Microsoft Azure | PLANNED V1 | Provides the target operating environment for application hosting, isolated analysis, persistence, temporary workspace, model connectivity, configuration, secrets, and observability. | Azure is an accepted platform choice, not a decision for any particular Azure service or SKU. |
 | ChatGPT or another API client | FUTURE | Uses stable DomainLens APIs to start or explore analyses. | DomainLens is not architecturally constrained to ChatGPT Sites, Apps, or any single client channel. |
-| External identity provider | FUTURE / OPEN DECISION | May authenticate users or federate organizational identity. | V1 identity, tenancy, and authorization requirements have not yet selected a provider or protocol. |
+| External identity provider | OPEN DECISION | May authenticate users or federate organizational identity if the approved access model requires it. | V1 has not selected whether authentication is required, an identity model/provider, tenancy, roles/permissions, sharing, or anonymous-access policy. |
 
 ## Primary V1 interactions
 
 ### Submit and analyze
 
 The user submits a public Git URL and optional ref. DomainLens validates the request, captures an
-identifiable snapshot, discovers technologies, creates an analysis plan, and dispatches approved
-deterministic analyzers. The first supported analyzer family targets legacy C#/.NET Framework/WCF,
-but that workload does not define the system boundary.
+identifiable snapshot, and dispatches the configured, approved legacy C#/.NET Framework/WCF
+analyzer capabilities. A bounded deterministic qualification check may reject a repository that
+the V1 analyzer path cannot support; this is not generalized technology discovery or automatic
+Analysis Plan generation. Those capabilities remain FUTURE, and the initial workload does not
+define the platform's architectural boundary.
 
 ### Interpret and validate
 
@@ -122,6 +124,7 @@ like an as-is source-system construct.
 - Model responses and human assertions may contribute to Inferred or Proposed findings and review state, but not Observed source facts. Human acceptance does not change an `Inferred` or `Proposed` classification.
 - External actions require deterministic authorization and validation; model output alone is not authority.
 - Source-code egress and retention must be explicitly governed before model or storage integration is enabled.
+- The logical “DomainLens User” does not imply an authenticated user or tenant. Access decisions must follow the approved identity/ownership policy; anonymous operation is allowed only if that future policy explicitly permits it.
 
 See the [runtime architecture](03-runtime-architecture.md),
 [agent and reasoning architecture](07-agent-reasoning-architecture.md), and
@@ -132,7 +135,7 @@ See the [runtime architecture](03-runtime-architecture.md),
 The following choices are deliberately not made by this baseline:
 
 - **OPEN DECISION — public Git compatibility:** the initial host allowlist, accepted URL forms, ref semantics, redirect policy, and treatment of submodules and Git LFS.
-- **OPEN DECISION — product identity:** whether Product V1 requires user authentication, tenancy, roles, or an external identity provider, and which protocols apply.
+- **OPEN DECISION — product identity and access:** whether Product V1 requires authentication; the authentication provider and user/ownership identity model; whether anonymous access is allowed; tenancy; roles/permissions; sharing; and any applicable protocols.
 - **OPEN DECISION — client API:** the public API style, versioning policy, and notification mechanism used by the native UI and future clients.
 - **OPEN DECISION — model boundary:** the model provider, deployment region, data-retention terms, and permitted source-code egress policy.
 

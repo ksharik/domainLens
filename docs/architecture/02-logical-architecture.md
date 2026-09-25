@@ -9,7 +9,7 @@ resource.
 
 - **CURRENT — Milestone 1:** `DomainLens.Core`, `DomainLens.Scanner`, and `DomainLens.Cli` implement the deterministic Repository Structure Scanner 0.1; the test project verifies its contracts.
 - **PLANNED — Product V1:** the end-to-end web/API, pipeline, analyzer-worker, reasoning, review, and persistence capabilities described below.
-- **FUTURE:** decomposition/modernization capabilities, additional client channels, richer orchestration, and analyzer families beyond legacy .NET/WCF.
+- **FUTURE:** decomposition/modernization capabilities, additional client channels, richer orchestration, generalized automatic technology discovery and generated Analysis Plans, and analyzer families beyond legacy .NET/WCF.
 
 The only separately isolated runtime boundary required by the approved V1 architecture is the
 untrusted Repository Analyzer Worker. The remaining logical components should default to cohesive
@@ -52,7 +52,7 @@ flowchart TB
         coordinator["Pipeline Coordinator"]
         intake["Repository Intake"]
         snapshot["Snapshot Service"]
-        planner["Analysis Planner"]
+        analyzerConfig["Configured V1 .NET/WCF analyzer profile"]
         evidenceKernel["Evidence Kernel and Evidence Graph"]
         context["Retrieval / Context Builder"]
         reasoning["Reasoning Runtime and versioned Skills"]
@@ -76,8 +76,9 @@ flowchart TB
     coordinator --> intake
     git --> intake
     intake --> snapshot
-    snapshot --> planner
-    planner --> worker
+    snapshot --> worker
+    analyzerConfig --> coordinator
+    coordinator --> worker
     worker --> structural
     worker --> framework
     worker --> relationships
@@ -99,8 +100,10 @@ flowchart TB
 ```
 
 Arrows express information or control dependencies, not a mandated transport. For example, the
-arrow from Analysis Planner to Analyzer Worker does not decide whether the implementation uses an
-in-process dispatcher, durable queue, or another job transport.
+arrow from Pipeline Coordinator to Analyzer Worker does not decide whether the implementation uses
+an in-process dispatcher, durable queue, or another job transport. The configured analyzer profile
+records the approved V1 .NET/WCF capabilities and versions; it is not an automatically generated
+Analysis Plan.
 
 ## Current implementation mapping
 
@@ -120,11 +123,11 @@ For exact current behavior and limitations, see
 |---|---|---|---|
 | Web UI | Starts analyses, presents progress, clarification, review, and exploration experiences. | API commands and query views. | Does not parse repositories, call models directly, or own canonical analysis state. |
 | API / Application Core | Exposes use cases, enforces authorization and input policy, and coordinates application services. | Client requests and validated application results. | Does not execute repository-controlled code. |
-| Pipeline Coordinator | Drives the allowlisted, durable workflow; records stage transitions; dispatches work; handles cancellation, retries, and review pauses. | Analysis plan, stage results, diagnostics, human decisions. | Does not infer domain meaning itself and does not dynamically generate agents. |
+| Pipeline Coordinator | Drives the allowlisted, durable workflow; records stage transitions; dispatches configured work; handles cancellation, retries, and review pauses. | Configured V1 analyzer profile/job, stage results, diagnostics, human decisions. | Does not infer domain meaning itself, dynamically generate agents, or ask a model to select analyzers. |
 | Repository Intake | Validates repository/ref requests and safely obtains public repository content under intake policy. | Public URL/ref; bounded repository content or rejection. | Does not trust repository metadata, redirects, documentation, or project files. |
 | Snapshot Service | Produces an identifiable, immutable manifest and snapshot boundary. | Captured repository bytes and revision metadata where safely available. | Does not treat a mutable checkout path as durable identity. |
-| Analysis Planner | Uses deterministic technology discovery to select applicable, allowlisted analyzer capabilities. | Snapshot technology observations and analyzer catalog. | Does not create runtime code or accept repository-supplied analyzers. |
-| Analyzer Worker | Hosts deterministic analysis against untrusted content within resource, filesystem, network, credential, and time limits. | Snapshot plus fixed analysis plan; evidence contributions and diagnostics. | Does not perform domain interpretation or use model output as source facts. |
+| Configured V1 Analyzer Profile | Identifies the approved legacy C#/.NET Framework/WCF structural, WCF, relationship, and persistence capabilities and their versions/configuration for reproducible dispatch. | Trusted deployed configuration; bounded worker job description. | Does not discover technologies or select across analyzer families from repository content. |
+| Analyzer Worker | Hosts deterministic analysis against untrusted content within resource, filesystem, network, credential, and time limits. | Snapshot plus fixed configured .NET/WCF job; evidence contributions and diagnostics. | Does not perform domain interpretation, automatically choose analyzer families, or use model output as source facts. |
 | Static Analysis | Extracts language-level structure and relationships with explicit resolution quality. | Source/project artifacts; normalized evidence. | Does not infer business or DDD semantics from names alone and does not require DDD-named source constructs. |
 | Framework-specific analyzers | Extract framework facts such as WCF contracts, operations, implementations, endpoints, bindings, and hosting configuration. | Applicable snapshot artifacts; normalized evidence. | Does not add framework-specific types to the core evidence contract without normalization. |
 | Relationship / Persistence Analysis | Establishes deterministic behavior, calls, rules where mechanically identifiable, mutations, data relationships/access, transactions, workflows/state changes, operations, messages, security checks, dependencies, coupling, configuration, and other supported implementation facts. | Analyzer-supported code/configuration; normalized evidence. | Does not turn technical coupling, a class name, or a framework convention into a DDD conclusion. |
@@ -137,6 +140,13 @@ For exact current behavior and limitations, see
 | Human Review workflow | Records clarification, challenge, acceptance, rejection, and requests for re-analysis. | Reviewable findings and questions; auditable decisions and new revisions. | Acceptance changes review status, not epistemic classification. |
 | Result Explorer | Projects source, evidence, findings, recovered knowledge, and proposed DDD design with navigation between them. | Query models from persistence with visible semantic-view, classification, and review-state labels. | Does not become the canonical store or silently blend a proposal into an as-is view. |
 | Persistence | Stores repository/snapshot/run state, evidence, findings/revisions, decisions, the single Domain Knowledge Model and its view discriminators, diagnostics, and producer versions behind application-owned ports. | Versioned durable records and mutable operational state. | Does not make generated prose the canonical model, erase semantic-view/classification distinctions, or couple the core directly to a database product. |
+
+### FUTURE — generalized analyzer selection
+
+The language-neutral contracts permit a later deterministic Technology Discovery component and
+Analysis Planner to select applicable capabilities from a trusted analyzer catalog. Neither is a
+Product V1 logical requirement. Their future contracts, selection policy, and capability/worker
+negotiation must be approved before they appear in a runtime flow.
 
 ## Dependency and ownership rules
 
@@ -168,7 +178,8 @@ versioned, or operationally mutable.
 - **OPEN DECISION — co-deployment:** which trusted logical modules initially share a host process and what measured operational need would justify separation.
 - **OPEN DECISION — job transport:** how the Coordinator dispatches and resumes isolated analyzer work.
 - **OPEN DECISION — query boundary:** the API/query shape used by Result Explorer across Evidence, Finding, Recovered Domain Knowledge, and Proposed DDD Design views while preserving their mandatory distinction.
-- **OPEN DECISION — technology discovery contract:** the exact representation used by Repository Intake, technology discovery, and Analysis Planner.
+- **OPEN DECISION — V1 analyzer-job contract:** the exact configured profile/job representation, analyzer versions, bounded qualification result, and unsupported-repository diagnostics for the known .NET/WCF path.
+- **FUTURE DECISION — generalized discovery and planning:** the technology-observation, automatic analyzer-selection, and generated Analysis Plan contracts are deferred until that future capability is approved.
 
 These open choices must preserve the accepted modular architecture and isolated-worker boundary;
 they are implementation decisions, not permission to collapse the evidence, finding, or domain

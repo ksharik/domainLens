@@ -23,6 +23,12 @@
 
 Repository source retention is distinct from evidence retention. A snapshot may be represented by an immutable source artifact, a selected Git revision plus content manifest, or both; the exact V1 retention strategy is an **OPEN DECISION**. Scanner 0.1 currently derives snapshot identity from its bounded content manifest and deliberately does not record a Git revision.
 
+Persistent records, artifacts, analysis operations, and workspaces must be access-controlled and
+isolated according to the approved identity, ownership, and authorization model. Identifiers are
+references, not authorization tokens. The authentication requirement/provider, identity and
+ownership model, anonymous access, roles/permissions, sharing, and tenancy remain open; if
+multi-tenancy is selected, tenant scope and isolation become mandatory within that model.
+
 ## Aggregate and reference boundaries
 
 The persistence model should preserve the following references without requiring all data to reside in one physical database:
@@ -85,13 +91,13 @@ V1 must support restartable work and concurrent readers while an analysis is pro
 - optimistic concurrency for human-review updates;
 - deterministic handling of duplicate completion messages;
 - an explicit active DKM version rather than in-place mutation, with Recovered Domain Knowledge and Proposed DDD Design as tagged projections of that version;
-- snapshot and tenant/repository scoping on every stored record.
+- repository, snapshot/run, and the applicable ownership/session/principal/authorization context on every stored record or artifact; tenant scope is added only if multi-tenancy is selected.
 
 The exact concurrency model and transaction isolation are **OPEN DECISIONS**.
 
 ## Retention, privacy, and migration
 
-Retention policies must separately cover source snapshots, snippets, Evidence Graphs, ContextPacks, model inputs/outputs, findings, DKM versions, diagnostics, and audit records. Encryption, deletion, legal/tenant isolation, backup/restore, and geographic residency are unresolved V1 design choices. Private repository support additionally requires approved credential and source-egress policy.
+Retention policies must separately cover source snapshots, snippets, Evidence Graphs, ContextPacks, model inputs/outputs, findings, DKM versions, diagnostics, and audit records. Encryption, deletion, legal and ownership/access isolation, backup/restore, geographic residency, and tenant isolation if multi-tenancy is selected are unresolved V1 design mechanisms. Private repository support additionally requires approved credential and source-egress policy.
 
 Schema and producer versions travel with stored artifacts. Readers must reject unsupported versions or run an explicit migration; they must not reinterpret old data silently. Migration from lightweight V1 persistence to managed Azure storage should preserve canonical artifact bytes/identities and revision lineage.
 
@@ -102,7 +108,7 @@ Schema and producer versions travel with stored artifacts. Readers must reject u
 - Run lease, idempotency, duplicate-delivery, and optimistic-concurrency mechanisms.
 - Evidence, Finding, ContextPack, and DKM schema migration/compatibility policy, including semantic-view preservation.
 - Snapshot/source storage and retention, including Git object, submodule, and LFS handling.
-- Encryption, keys, backup/restore, region, tenant isolation, deletion, and audit retention.
+- Encryption, keys, backup/restore, region, ownership/access partitioning, conditional tenant isolation if multi-tenancy is selected, deletion, and audit retention.
 - DKM active-version and cross-run reconciliation rules.
 
 See [Analysis Pipeline](04-analysis-pipeline.md), [Evidence Architecture](05-evidence-architecture.md), [Domain Knowledge Architecture](06-domain-knowledge-architecture.md), and [Observability and Operations](12-observability-and-operations.md). Related decision: [ADR-005](../adr/005-persist-domain-knowledge-model-as-canonical-intermediate-asset.md).
