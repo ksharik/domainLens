@@ -1,5 +1,11 @@
 # Analysis and Evidence Model
 
+> Scanner 0.1 currently implements only the deterministic Evidence Graph.
+> Finding Graph and Domain Knowledge Model behavior below is planned V1
+> architecture. See the detailed [Evidence](architecture/05-evidence-architecture.md)
+> and [Domain Knowledge](architecture/06-domain-knowledge-architecture.md)
+> designs.
+
 ## Evidence Graph
 
 Contains deterministic facts established from a repository snapshot: structure, declarations, framework constructs, relationships, source spans/hashes, extractor provenance and resolution.
@@ -28,7 +34,7 @@ Findings preserve atomic claim, concept type, classification, subject nodes, sup
 
 ## Domain Knowledge Model
 
-Validated findings project into a queryable, persistent Domain Knowledge Model.
+In planned V1, eligible validated findings project through deterministic application logic into a queryable, persistent Domain Knowledge Model. Projection eligibility and conflict handling remain open design decisions.
 
 ### Business Architecture
 - Business Capabilities
@@ -123,6 +129,6 @@ The Domain Knowledge Model describes the reconstructed domain and implementation
 
 This separation supports:
 
-`Source Code → Evidence Graph → Domain Knowledge Model → Decomposition Analysis → Modernization Model → Target Architecture`
+`Source Code → Evidence Graph → Semantic Findings → Domain Knowledge Model → Decomposition Analysis → Modernization Model → Target Architecture`
 
 The Domain Knowledge Model is therefore the durable platform asset for future modernization.

@@ -22,7 +22,7 @@ The Domain Knowledge Model is not a disposable report. It is a canonical interme
 
 The intended progression is:
 
-`Source Code → Evidence Graph → Domain Knowledge Model → Decomposition Analysis → Modernization Model → Target Architecture`
+`Source Code → Evidence Graph → Semantic Findings → Domain Knowledge Model → Decomposition Analysis → Modernization Model → Target Architecture`
 
 ## Clients
 

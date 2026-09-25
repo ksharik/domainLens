@@ -10,7 +10,10 @@ V1 is an end-to-end Azure-hosted product. A user can submit a public Git reposit
 
 The first supported stack is **legacy C#/.NET Framework with WCF**. This is the first analyzer family, not DomainLens's architectural boundary.
 
-See [Product Overview](docs/01-product-overview.md), [Architecture](docs/04-architecture.md), and [Roadmap](docs/10-roadmap.md).
+See [Product Overview](docs/01-product-overview.md), the detailed
+[Architecture and Design Baseline](docs/architecture/README.md), the
+[Architecture Decision Records](docs/adr/README.md), and the
+[Roadmap](docs/10-roadmap.md).
 
 ## Repository Structure Scanner 0.1
 

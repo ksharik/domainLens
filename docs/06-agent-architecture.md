@@ -1,12 +1,15 @@
 # Agent Architecture
 
+> This document describes planned V1 behavior. Scanner 0.1 contains no agent or
+> model invocation. See [Agent and Reasoning Architecture](architecture/07-agent-reasoning-architecture.md).
+
 ## Coordinator
 
 V1 uses a fixed allowlisted workflow rather than arbitrary dynamic sub-agents. It manages analysis state, invokes deterministic capabilities, builds context packs, invokes approved reasoning skills, validates outputs and coordinates human review.
 
 ## Deterministic responsibilities
 
-Git/snapshotting, path/network security, solution/project parsing, Roslyn/MSBuild integration, WCF/config analysis, relationship extraction, evidence storage, retrieval/token budgeting, pipeline state, schema/provenance validation and permission/resource policy.
+Git/snapshotting, path/network security, solution/project parsing, Roslyn analysis, controlled semantic enrichment, WCF/config analysis, relationship extraction, evidence storage, retrieval/token budgeting, pipeline state, schema/provenance validation and permission/resource policy. Scanner 0.1 is syntax-only and does not load or evaluate projects with MSBuild. Any future use of MSBuild-derived semantics must preserve the no-execution rule and run inside the isolated analyzer boundary.
 
 As analyzer capabilities mature, deterministic evidence may include calls, mutations, persistence access, transaction constructs, authorization checks, state changes, messages, external dependencies and other implementation facts needed by the Domain Knowledge Model.
 
