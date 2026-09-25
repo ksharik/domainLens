@@ -17,7 +17,7 @@
 | Evidence and Evidence Graph | Deterministic observations, provenance, nodes, edges, diagnostics, and canonical document identity | Immutable per graph version; superseded, never rewritten |
 | Findings and revisions | Atomic semantic interpretations/proposals with support, contradictions, validation, and lineage | Append-only revisions and status transitions |
 | Human decisions | Clarifications, challenges, accept/reject actions, rationale, and actor/time | Append-only audit history |
-| Domain Knowledge Model | Structured reconstruction projected from validated findings | Immutable/versioned projections |
+| Domain Knowledge Model | One structured asset projected from validated findings, with a required semantic-view discriminator for Recovered Domain Knowledge versus Proposed DDD Design | Immutable/versioned model and query projections; not separate stores |
 | Diagnostics | Analyzer, pipeline, validation, worker, and model issues plus coverage limits | Append-only per attempt/run |
 | Version stamps | Analyzer/rule, schema, skill, prompt, model/provider, coordinator, and application versions | Immutable references on produced artifacts |
 
@@ -36,11 +36,11 @@ flowchart LR
     Evidence --> Finding["Finding revisions"]
     Run --> Finding
     Finding --> Human["Human decisions"]
-    Finding --> DKM["Domain Knowledge Model version"]
-    DKM --> Projection["Explorer / diagrams / Markdown"]
+    Finding --> DKM["Domain Knowledge Model version<br/>Recovered + Proposed DDD views"]
+    DKM --> Projection["Visibly labeled explorer / diagrams / Markdown"]
 ```
 
-Generated reports and Markdown are replaceable projections. They must not be the only persisted representation of evidence, findings, decisions, or domain knowledge.
+Generated reports and Markdown are replaceable projections. They must not be the only persisted representation of evidence, findings, decisions, or domain knowledge, and they must not silently combine Proposed DDD Design with recovered/as-is knowledge.
 
 ## Immutability, revision, and provenance
 
@@ -48,7 +48,7 @@ Immutable/versioned artifacts include snapshot manifests and source hashes, cano
 
 Mutable operational records include a run's current stage, progress, worker lease/heartbeat, cancellation request, retry counters, and current review assignment. Each meaningful transition should also append an immutable event or audit record so failures and resumptions can be reconstructed.
 
-Review state and claim classification remain separate. Accepting a finding updates review history and may cause a new DKM projection; it does not change an Inferred claim into Observed evidence.
+Semantic view, review state, and claim classification remain separate. Accepting a finding updates review history and may cause a new DKM projection; it does not change an `Inferred` claim into `Observed`, change a `Proposed` claim into `Inferred` or `Observed`, or move Proposed DDD Design into the recovered view.
 
 ## Transaction and publication boundaries
 
@@ -57,7 +57,7 @@ Persistence adapters must prevent partially published artifacts from appearing c
 - a stage attempt writes to an attempt-scoped area and publishes its result only after validation;
 - a canonical Evidence Graph is addressable only after hash and graph-integrity validation succeeds;
 - a finding revision references an existing ContextPack/evidence set and producer versions;
-- a DKM version references the exact eligible finding revisions used for projection;
+- a DKM version references the exact eligible finding revisions used for projection and retains each record's recovered/proposed semantic view and epistemic classification;
 - the pipeline checkpoint advances only after required artifacts are durably published;
 - idempotency keys prevent retries from duplicating logical results;
 - cancellation preserves completed immutable artifacts and records why later work stopped.
@@ -66,7 +66,7 @@ Whether these guarantees use one relational transaction, an outbox, optimistic c
 
 ## Storage abstraction
 
-Application contracts should express repositories, snapshots, run state, evidence documents, finding revisions, knowledge-model versions, and audit history without exposing a particular Azure SDK or database type. A practical deployment may separate:
+Application contracts should express repositories, snapshots, run state, evidence documents, finding revisions, knowledge-model versions, semantic views, and audit history without exposing a particular Azure SDK or database type. Queries and presentation models must preserve the view discriminator even if a practical deployment separates:
 
 - large immutable source/evidence/context artifacts;
 - relational/queryable metadata and graph projections;
@@ -84,7 +84,7 @@ V1 must support restartable work and concurrent readers while an analysis is pro
 - immutable artifact references from checkpoints;
 - optimistic concurrency for human-review updates;
 - deterministic handling of duplicate completion messages;
-- an explicit active DKM version rather than in-place mutation;
+- an explicit active DKM version rather than in-place mutation, with Recovered Domain Knowledge and Proposed DDD Design as tagged projections of that version;
 - snapshot and tenant/repository scoping on every stored record.
 
 The exact concurrency model and transaction isolation are **OPEN DECISIONS**.
@@ -100,7 +100,7 @@ Schema and producer versions travel with stored artifacts. Readers must reject u
 - Persistence engine(s), graph/query projections, and artifact-versus-relational split.
 - Physical schemas, indexes, transaction boundaries, outbox/event strategy, and isolation level.
 - Run lease, idempotency, duplicate-delivery, and optimistic-concurrency mechanisms.
-- Evidence, Finding, ContextPack, and DKM schema migration/compatibility policy.
+- Evidence, Finding, ContextPack, and DKM schema migration/compatibility policy, including semantic-view preservation.
 - Snapshot/source storage and retention, including Git object, submodule, and LFS handling.
 - Encryption, keys, backup/restore, region, tenant isolation, deletion, and audit retention.
 - DKM active-version and cross-run reconciliation rules.

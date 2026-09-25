@@ -78,6 +78,21 @@ OpenAPI operations, or messaging consumers may provide different evidence for co
 application service or command, but those business interpretations remain semantic findings rather
 than technology-specific facts smuggled into the core.
 
+## Source-architecture neutrality
+
+Analyzer families must support applications that were never designed using DDD: traditional
+N-tier, transaction-script, anemic-domain-model, service-oriented, procedural, tightly coupled
+monolithic, partially domain-oriented, and explicitly DDD systems are all valid inputs. Analyzer
+selection and evidence extraction must not require classes, interfaces, base types, attributes, or
+folders named `AggregateRoot`, `Entity`, `ValueObject`, `DomainEvent`, or `BoundedContext`.
+
+When those names occur, an analyzer may record the declaration, inheritance, attribute, or
+relationship as Observed evidence. The name is neither necessary nor sufficient to establish the
+DDD role. Analyzer capabilities should instead establish supported implementation facts about
+behavior, rules, invariants, data relationships, mutations, transactions, workflows, state,
+operations, persistence, messages, security, dependencies, and coupling. Semantic reasoning then
+decides whether those facts support Recovered Domain Knowledge or a Proposed DDD Design.
+
 ## Technology discovery and the Analysis Plan
 
 Technology Discovery examines the immutable snapshot using safe, deterministic rules. Its output
@@ -111,7 +126,7 @@ language or loading mechanism:
 | Capabilities | The analyzer declares the technologies/artifact types it understands, prerequisites, and compatible worker profiles. |
 | Input boundary | The analyzer receives only the immutable snapshot view and bounded plan/configuration required for its task. It cannot expand its own permissions. |
 | Determinism | Given the same captured bytes, analyzer/rule version, and declared configuration, deterministic analysis produces the same normalized contribution or explicit diagnostics. |
-| Evidence output | Observations use the normalized Evidence Model, carry source or metadata provenance, resolution basis/quality, and stable identities, and never contain live parser/runtime objects. |
+| Evidence output | Observations use the normalized Evidence Model, carry source or metadata provenance, resolution basis/quality, and stable identities, and never contain live parser/runtime objects. DDD-like names remain declarations or relationships, not preclassified domain roles. |
 | Coverage | Unsupported, ambiguous, malformed, excluded, conditional, or inaccessible input yields typed diagnostics and appropriate partial/unresolved resolution rather than guessed facts. |
 | Composition | Analyzer output can reference valid existing nodes or contribute new normalized nodes/edges according to merge and identity rules. Conflicts are surfaced, not resolved by ordering accident. |
 | Validation | Contributions pass schema, identity, reference, provenance, path, size, and policy validation before entering the Evidence Graph. Invalid output cannot be repaired into Observed evidence by an LLM. |
@@ -165,6 +180,11 @@ business command, the table belongs to a bounded context, or a class is an aggre
 are evidence-backed semantic findings created later through the
 [agent and reasoning architecture](07-agent-reasoning-architecture.md).
 
+Likewise, the literal names `AggregateRoot`, `Entity`, `ValueObject`, `DomainEvent`, and
+`BoundedContext` are not privileged shortcuts. They can guide retrieval only alongside other
+evidence; they cannot satisfy a reasoning recipe by themselves. Their absence cannot reduce
+analyzer coverage when the relevant behavior and relationships are otherwise available.
+
 Likewise, an LLM is not an analyzer implementation. It cannot compensate for a missing parser by
 creating Observed nodes, edges, source spans, or resolution. The separation keeps new technology
 support testable and makes the platform's confidence limits visible.
@@ -189,7 +209,7 @@ framework concepts can be encoded without versioning.
 - **OPEN DECISION — graph composition:** namespace governance for kinds/rules, identity collisions, duplicate contributions, precedence, and cross-analyzer reference resolution.
 - **OPEN DECISION — version compatibility:** Evidence Model evolution, analyzer/core compatibility ranges, result migration, and re-analysis triggers.
 - **OPEN DECISION — worker scheduling:** capability/OS matching, resource classes, analyzer co-location, and isolation profiles.
-- **OPEN DECISION — analyzer conformance:** the fixture, determinism, security, performance, provenance, and coverage test suite required before catalog admission.
+- **OPEN DECISION — analyzer conformance:** the fixture, determinism, security, performance, provenance, and coverage test suite required before catalog admission, including representative non-DDD systems and misleading or absent DDD-style names.
 
 ## Related architecture
 

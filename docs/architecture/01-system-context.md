@@ -18,16 +18,27 @@ The governing rule at every boundary is:
 
 > **Code establishes evidence. AI interprets evidence. The agent orchestrates the process.**
 
+> **Source-model neutrality:** DomainLens shall not require or assume that an analyzed application was originally designed using Domain-Driven Design. DDD concepts may be recovered, inferred, or proposed from implementation evidence even when corresponding DDD constructs do not explicitly exist in the source system.
+
 ## System responsibility
 
 DomainLens reconstructs architecture and domain knowledge from existing software while preserving
-traceability to the analyzed repository snapshot. It owns the analysis workflow and the results it
-produces. It does not own the submitted repository, the Git provider, the model provider, or the
-user's downstream modernization process.
+traceability to the analyzed repository snapshot. The analyzed application may be N-tier,
+transaction-script based, anemic, service-oriented, procedural, a tightly coupled monolith,
+partially domain-oriented, or explicitly designed with DDD. Source constructs named
+`AggregateRoot`, `Entity`, `ValueObject`, `DomainEvent`, or `BoundedContext` are neither required
+nor sufficient. DomainLens owns the analysis workflow and the results it produces. It does not own
+the submitted repository, the Git provider, the model provider, or the user's downstream
+modernization process.
+
+Reverse DDD answers two connected questions: **what domain knowledge can be reconstructed from
+the existing system and business, and how can that domain be represented using DDD?** The first
+produces Recovered Domain Knowledge; the second may produce Proposed DDD Design. Neither question
+is Decomposition Analysis or future-state modernization.
 
 The durable flow is:
 
-`Source Code -> Evidence Graph -> Semantic Findings -> Domain Knowledge Model -> Decomposition Analysis -> Modernization Model`
+`Source Code -> Evidence Graph -> Semantic Findings -> Domain Knowledge Model { Recovered Domain Knowledge + Proposed DDD Design } -> Decomposition Analysis -> Modernization Model -> Target Architecture`
 
 Only deterministic repository scanning and Evidence Graph output are CURRENT. The remaining V1
 steps are PLANNED; decomposition and modernization analysis are later stages and must never be
@@ -86,8 +97,9 @@ but that workload does not define the system boundary.
 
 DomainLens constructs a bounded ContextPack from validated evidence and invokes an approved
 reasoning skill. Candidate findings remain separate from the Evidence Graph and retain supporting
-and counterevidence. Deterministic validation and, where needed, human review precede projection
-into the persistent Domain Knowledge Model.
+and counterevidence. Recovered claims about the existing system are tagged separately from proposed
+DDD representations that may not exist in that system. Deterministic validation and, where needed,
+human review precede projection into the persistent Domain Knowledge Model.
 
 ### Explore and challenge
 
@@ -97,14 +109,17 @@ the repository snapshot.
 
 ### Reuse downstream
 
-The persistent Domain Knowledge Model is the canonical intermediate asset for later decomposition
-and modernization analysis. Generated prose and Markdown are views, not the canonical model.
+The persistent Domain Knowledge Model is the single canonical intermediate asset for later
+decomposition and modernization analysis. It exposes Recovered Domain Knowledge and Proposed DDD
+Design as distinct semantic views with shared provenance and revision semantics. Generated prose
+and Markdown are views, not the canonical model, and presentation must not make a DDD proposal look
+like an as-is source-system construct.
 
 ## Trust statements
 
 - Repository paths, source code, project files, comments, documentation, and repository-local agent instructions are untrusted data.
 - Only trusted deterministic application code may establish Observed evidence.
-- Model responses and human assertions may contribute to Inferred or Proposed findings and review state, but not Observed source facts.
+- Model responses and human assertions may contribute to Inferred or Proposed findings and review state, but not Observed source facts. Human acceptance does not change an `Inferred` or `Proposed` classification.
 - External actions require deterministic authorization and validation; model output alone is not authority.
 - Source-code egress and retention must be explicitly governed before model or storage integration is enabled.
 

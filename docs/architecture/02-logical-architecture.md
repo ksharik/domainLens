@@ -21,12 +21,17 @@ The platform preserves five different kinds of knowledge:
 
 1. **Deterministic Evidence** — source-backed observations established by trusted analyzers.
 2. **Semantic Findings** — evidence-referenced Inferred or Proposed interpretations.
-3. **Domain Knowledge Model** — a persistent, queryable projection of validated findings and their evidence lineage.
+3. **Domain Knowledge Model** — one persistent, queryable asset with explicitly tagged **Recovered Domain Knowledge** and **Proposed DDD Design** projections, each retaining finding/evidence lineage.
 4. **Decomposition Analysis** — later analysis of possible separation or modernization boundaries.
 5. **Modernization Model** — future target-state and migration knowledge.
 
 These layers have different producers, validators, lifecycles, and authority. A downstream layer
 may reference an upstream layer, but it may not rewrite or masquerade as that layer.
+
+The architecture is neutral to the source application's design style. Deterministic analyzers
+extract supported structure and behavior from layered, transaction-script, anemic, service-oriented,
+procedural, monolithic, partially domain-oriented, and explicitly DDD systems. They never require
+DDD marker types or naming conventions before domain reasoning can occur.
 
 ## Component view
 
@@ -52,7 +57,7 @@ flowchart TB
         context["Retrieval / Context Builder"]
         reasoning["Reasoning Runtime and versioned Skills"]
         findingValidator["Finding Validator and Finding Graph"]
-        domainModel["Domain Knowledge Model"]
+        domainModel["Domain Knowledge Model<br/>Recovered knowledge + Proposed DDD"]
         persistence["Persistence ports"]
     end
 
@@ -120,18 +125,18 @@ For exact current behavior and limitations, see
 | Snapshot Service | Produces an identifiable, immutable manifest and snapshot boundary. | Captured repository bytes and revision metadata where safely available. | Does not treat a mutable checkout path as durable identity. |
 | Analysis Planner | Uses deterministic technology discovery to select applicable, allowlisted analyzer capabilities. | Snapshot technology observations and analyzer catalog. | Does not create runtime code or accept repository-supplied analyzers. |
 | Analyzer Worker | Hosts deterministic analysis against untrusted content within resource, filesystem, network, credential, and time limits. | Snapshot plus fixed analysis plan; evidence contributions and diagnostics. | Does not perform domain interpretation or use model output as source facts. |
-| Static Analysis | Extracts language-level structure and relationships with explicit resolution quality. | Source/project artifacts; normalized evidence. | Does not infer business semantics from names alone. |
+| Static Analysis | Extracts language-level structure and relationships with explicit resolution quality. | Source/project artifacts; normalized evidence. | Does not infer business or DDD semantics from names alone and does not require DDD-named source constructs. |
 | Framework-specific analyzers | Extract framework facts such as WCF contracts, operations, implementations, endpoints, bindings, and hosting configuration. | Applicable snapshot artifacts; normalized evidence. | Does not add framework-specific types to the core evidence contract without normalization. |
-| Relationship / Persistence Analysis | Establishes deterministic calls, mutations, data access, transactions, messages, configuration, and other supported implementation facts. | Analyzer-supported code/configuration; normalized evidence. | Does not turn technical coupling into a bounded-context conclusion. |
+| Relationship / Persistence Analysis | Establishes deterministic behavior, calls, rules where mechanically identifiable, mutations, data relationships/access, transactions, workflows/state changes, operations, messages, security checks, dependencies, coupling, configuration, and other supported implementation facts. | Analyzer-supported code/configuration; normalized evidence. | Does not turn technical coupling, a class name, or a framework convention into a DDD conclusion. |
 | Evidence Kernel / Evidence Graph | Owns normalized evidence contracts, canonical identity/provenance rules, graph validation, and immutable evidence views. | Deterministic analyzer output; validated Evidence Graph. | Rejects model-authored Observed evidence and never stores proposals as source facts. |
 | Retrieval / Context Builder | Selects a minimal, provenance-preserving graph slice and bounded snippets for one reasoning objective. | Evidence Graph, existing findings, task recipe, budget. | Does not give the model unrestricted repository access and does not require vector retrieval in V1. |
 | Reasoning Runtime | Invokes fixed, versioned skills through a provider adapter and receives structured candidate results. | Sealed ContextPack and reasoning contract; untrusted structured output. | Does not parse the repository or authorize external actions. |
-| Reasoning Skills | Define purpose, required evidence, context recipe, instructions, output schema, support rubric, and repair policy for an approved reasoning task. | Versioned reasoning request; candidate findings/explanations. | Are not source analyzers, arbitrary prompts, or dynamic agents. |
-| Finding Validator / Finding Graph | Validates schema, evidence references, classification, support, counterevidence, contradictions, and revision lineage. | Candidate findings and human decisions; validated finding revisions. | Never mutates the Evidence Graph or reclassifies an inference as Observed. |
-| Domain Knowledge Model | Provides the persistent business/domain representation reconstructed from validated findings with evidence lineage. | Validated finding revisions; versioned concepts and relationships. | Is not a Markdown report and does not contain decomposition recommendations as source evidence. |
+| Reasoning Skills | Recover existing business/system meaning and, separately, infer or propose DDD representations using required evidence recipes, output schemas, support rubrics, and repair policy. | Versioned reasoning request; candidate findings/explanations tagged with semantic view and classification. | Are not source analyzers, arbitrary prompts, dynamic agents, or license to assume DDD from source names. |
+| Finding Validator / Finding Graph | Validates schema, evidence references, semantic view, classification, support, counterevidence, contradictions, and revision lineage. | Candidate findings and human decisions; validated finding revisions. | Never mutates the Evidence Graph, reclassifies an inference as Observed, or presents Proposed DDD Design as recovered knowledge. |
+| Domain Knowledge Model | Provides one persistent business/domain asset with separately queryable Recovered Domain Knowledge and Proposed DDD Design views. | Validated finding revisions; versioned concepts and relationships with view, classification, provenance, assumptions, support, alternatives, review state, and lineage. | Is not two independent stores, a Markdown report, or a container for decomposition recommendations. |
 | Human Review workflow | Records clarification, challenge, acceptance, rejection, and requests for re-analysis. | Reviewable findings and questions; auditable decisions and new revisions. | Acceptance changes review status, not epistemic classification. |
-| Result Explorer | Projects source, evidence, findings, and domain-model views with navigation between them. | Query models from persistence. | Does not become the canonical store. |
-| Persistence | Stores repository/snapshot/run state, evidence, findings/revisions, decisions, Domain Knowledge Model, diagnostics, and producer versions behind application-owned ports. | Versioned durable records and mutable operational state. | Does not make generated prose the canonical model or couple the core directly to a database product. |
+| Result Explorer | Projects source, evidence, findings, recovered knowledge, and proposed DDD design with navigation between them. | Query models from persistence with visible semantic-view, classification, and review-state labels. | Does not become the canonical store or silently blend a proposal into an as-is view. |
+| Persistence | Stores repository/snapshot/run state, evidence, findings/revisions, decisions, the single Domain Knowledge Model and its view discriminators, diagnostics, and producer versions behind application-owned ports. | Versioned durable records and mutable operational state. | Does not make generated prose the canonical model, erase semantic-view/classification distinctions, or couple the core directly to a database product. |
 
 ## Dependency and ownership rules
 
@@ -140,9 +145,9 @@ For exact current behavior and limitations, see
 3. Analyzer implementations depend on the normalized Evidence Kernel contract. The language-neutral core does not depend on WCF, Roslyn, Java, Spring, database, or messaging analyzers.
 4. Only deterministic analyzers can contribute Observed evidence, and every contribution must carry snapshot-scoped provenance and resolution.
 5. The Context Builder reads validated evidence and finding state through bounded retrieval operations. It does not expose an unrestricted checkout or general-purpose filesystem tool to a model.
-6. The Reasoning Runtime can produce candidate Inferred or Proposed findings only. The Finding Validator owns acceptance into the Finding Graph.
-7. The Domain Knowledge Model is derived from validated, revisioned findings and retains links back through findings to evidence and the snapshot.
-8. Decomposition Analysis consumes a versioned Domain Knowledge Model in a later stage; it does not annotate or modify deterministic source evidence.
+6. The Reasoning Runtime can produce candidate Inferred or Proposed findings only. It tags recovered/as-is meaning separately from proposed DDD design, and the Finding Validator owns acceptance into the Finding Graph.
+7. The Domain Knowledge Model is derived from validated, revisioned findings and retains semantic view, classification, review state, and links back through findings to evidence and the snapshot. Acceptance never changes `Proposed` to `Inferred` or `Observed`.
+8. Decomposition Analysis consumes a versioned Domain Knowledge Model in a later stage. Proposed DDD Design is not Decomposition Analysis, and neither stage annotates or modifies deterministic source evidence.
 9. Azure, model, Git, persistence, and telemetry products sit behind adapters so application rules do not depend directly on vendor SDKs.
 
 ## Control flow and data flow
@@ -162,7 +167,7 @@ versioned, or operationally mutable.
 - **OPEN DECISION — module contracts:** the exact projects/packages and public interfaces for planned V1 modules beyond the current three production projects.
 - **OPEN DECISION — co-deployment:** which trusted logical modules initially share a host process and what measured operational need would justify separation.
 - **OPEN DECISION — job transport:** how the Coordinator dispatches and resumes isolated analyzer work.
-- **OPEN DECISION — query boundary:** the API/query shape used by Result Explorer across Evidence, Finding, and Domain Knowledge views.
+- **OPEN DECISION — query boundary:** the API/query shape used by Result Explorer across Evidence, Finding, Recovered Domain Knowledge, and Proposed DDD Design views while preserving their mandatory distinction.
 - **OPEN DECISION — technology discovery contract:** the exact representation used by Repository Intake, technology discovery, and Analysis Planner.
 
 These open choices must preserve the accepted modular architecture and isolated-worker boundary;

@@ -6,6 +6,8 @@ Azure deployment; public Git intake; native UI/progress; C#/.NET Framework struc
 
 V1's target knowledge model includes business capabilities, actors/use cases, strategic and tactical DDD, business rules/invariants/workflows, application/integration relationships, security policies, data ownership/consistency and decomposition-relevant coupling evidence.
 
+V1 must work when the analyzed source uses no DDD vocabulary or structure. The canonical Domain Knowledge Model exposes Recovered Domain Knowledge separately from Proposed DDD Design; neither view is a substitute for the later Decomposition Analysis stage.
+
 ## Engineering milestones inside V1
 
 0. Deployment/security feasibility spike (prerequisite).
@@ -14,8 +16,8 @@ V1's target knowledge model includes business capabilities, actors/use cases, st
 3. Relationship/persistence analysis.
 4. Evidence persistence/explorer.
 5. Context builder and structured reasoning runtime.
-6. Domain discovery.
-7. DDD modeling and validation.
+6. Source-model-neutral recovery of domain knowledge.
+7. Recovered-DDD interpretation, Proposed DDD Design and validation.
 8. Human review/challenge workflow.
 9. Azure end-to-end deployment/hardening.
 
@@ -35,4 +37,4 @@ Add Linux workers; containerize where useful; introduce queues/worker pools for 
 
 Decomposition analysis operates over the persisted Domain Knowledge Model rather than being mixed into source evidence or DDD discovery.
 
-`Source Code → Evidence Graph → Semantic Findings → Domain Knowledge Model → Decomposition Analysis → Modernization Model → Target Architecture → Migration Planning`
+`Source Code → Evidence Graph → Semantic Findings → Domain Knowledge Model { Recovered Domain Knowledge + Proposed DDD Design } → Decomposition Analysis → Modernization Model → Target Architecture → Migration Planning`

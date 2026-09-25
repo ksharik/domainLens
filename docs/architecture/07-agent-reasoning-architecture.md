@@ -8,6 +8,13 @@ The reasoning architecture enforces the governing rule:
 
 > Code establishes evidence. AI interprets evidence. The agent orchestrates the process.
 
+Reasoning is source-model neutral. Skills must not assume that the application used DDD, require
+DDD marker types, or treat names such as `AggregateRoot`, `Entity`, `ValueObject`, `DomainEvent`,
+or `BoundedContext` as sufficient proof. Those names may be included as weak, contextual evidence;
+reconstruction must be grounded in relevant behavior, rules, invariants, data/mutation/transaction
+relationships, workflows, state, operations, persistence, messages, security, dependencies, and
+coupling.
+
 ## Responsibility boundaries
 
 | Layer | Owns | Must not own |
@@ -32,8 +39,8 @@ The Pipeline Coordinator follows application-owned state and an allowlist of cap
 
 The initial skill set is:
 
-- `domain-discovery` — identifies evidence-backed business capabilities, actors, use cases, domains, subdomains, and candidate boundaries.
-- `ddd-modeling` — proposes strategic and tactical DDD concepts and relationships over selected evidence and prior valid findings.
+- `domain-discovery` — reconstructs evidence-backed business/system knowledge without assuming a source design style and emits `Inferred` findings for the Recovered Domain Knowledge view.
+- `ddd-modeling` — interprets existing DDD behavior when support exists and proposes strategic or tactical DDD representations over selected evidence and prior valid findings. Recommendations emit `Proposed` findings for the Proposed DDD Design view.
 - `explain-finding` — reconstructs a concise explanation from a finding, its evidence/counterevidence, assumptions, and limitations.
 - `semantic-evidence-review` — tests a semantic claim for support, contradiction, missing coverage, and alternative interpretations.
 
@@ -47,6 +54,7 @@ A ContextPack is the sealed, versioned input envelope for one reasoning objectiv
 - repository snapshot, Evidence Graph, analyzer, and rule version references;
 - selected Evidence IDs, graph slices, source snippets/spans, content hashes, and resolution quality;
 - relevant accepted or unresolved finding revisions;
+- evidence about behavior, rules/invariants, data/mutations/transactions, workflows/state, operations, persistence, messages/integrations, security, dependencies, and coupling appropriate to the objective;
 - explicit counterevidence, conflicting paths, diagnostics, and coverage limitations;
 - retrieval recipe, filters, traversal depth, ranking/selection reasons, and excluded material;
 - summaries with links to their source evidence;
@@ -83,6 +91,7 @@ ReasoningRequest
 
 AnalysisResult
   atomic findings[]
+    semanticView: RecoveredDomainKnowledge | ProposedDddDesign
     classification: Inferred | Proposed
     concept/relationship type and subjects
     supporting and counter evidence references
@@ -92,7 +101,13 @@ AnalysisResult
   producer/model/skill/prompt versions
 ```
 
-The exact wire schema and scoring rubric are **OPEN DECISIONS**. The invariant is non-negotiable: model-created findings cannot be classified as Observed, and every source-backed assertion must reference evidence present in the sealed pack.
+The exact wire schema and scoring rubric are **OPEN DECISIONS**. The invariants are non-negotiable:
+
+- model-created findings cannot be classified as `Observed`;
+- `RecoveredDomainKnowledge` describes the existing business/system and uses `Inferred` for semantic claims;
+- a DDD recommendation uses `ProposedDddDesign` and remains `Proposed`, including after human acceptance;
+- a claim that both reconstructs an as-is condition and recommends a design must be split into atomic findings; and
+- every source-backed assertion must reference evidence present in the sealed pack.
 
 ## Invocation, validation, and review
 
@@ -133,6 +148,7 @@ Validation is deterministic wherever possible:
 - parse and validate the declared response schema;
 - reject unknown Evidence IDs or references outside the ContextPack;
 - reject model-created `Observed` classifications;
+- reject an invalid semantic-view/classification pairing or a Proposed DDD item presented as recovered/as-is knowledge;
 - require atomic claims, supported subjects, producer/version metadata, and limitations;
 - verify that quoted snippets and claimed relationships correspond to supplied evidence;
 - retain counterevidence and prevent unsupported high-confidence claims;
@@ -145,7 +161,7 @@ Repair is bounded and auditable. A failed repair budget leads to a failed/reject
 
 A user can ask why a concept was inferred, inspect its code evidence, supply domain clarification, challenge assumptions, and request re-analysis. The coordinator builds a new ContextPack that includes the challenged finding, its evidence, its counterevidence, and the human statement identified as human input. The outcome is a new finding revision with a traceable relationship to the prior one.
 
-Human input is authoritative only for the decision/review state the product allows. It remains distinguishable from source evidence and model interpretation.
+Human input is authoritative only for the decision/review state the product allows. It remains distinguishable from source evidence and model interpretation. Accepting an `Inferred` recovery does not make it `Observed`; accepting a `Proposed` DDD design does not make it `Inferred`, `Observed`, or recovered.
 
 ## Security boundary
 
@@ -156,7 +172,7 @@ Source-code egress, provider retention, deployment region, redaction, and consen
 ## Open decisions
 
 - Model provider, deployment/region, retention, source-egress, and provider-version policy.
-- Structured Finding and ContextPack schemas, IDs, versioning, and canonical hashing.
+- Structured Finding and ContextPack schemas, semantic-view encoding, IDs, versioning, and canonical hashing.
 - Support/confidence/coverage rubric and thresholds for validation or human escalation.
 - Repairable-error categories, retry budget, timeout, and fallback behavior.
 - ContextPack token budgets, graph recipes, summarization rules, and persistence lifetime.

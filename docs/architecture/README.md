@@ -4,6 +4,8 @@ This section describes how DomainLens is structured to satisfy the approved prod
 
 > **Code establishes evidence. AI interprets evidence. The agent orchestrates the process.**
 
+> **Source-model neutrality:** DomainLens shall not require or assume that an analyzed application was originally designed using Domain-Driven Design. DDD concepts may be recovered, inferred, or proposed from implementation evidence even when corresponding DDD constructs do not explicitly exist in the source system.
+
 ## Status language
 
 Every architecture document uses the following labels deliberately:
@@ -21,13 +23,15 @@ Deterministic Evidence
 Semantic Findings
         ↓
 Persistent Domain Knowledge Model
+        ├── Recovered Domain Knowledge
+        └── Proposed DDD Design
         ↓
 Decomposition Analysis
         ↓
 Future Modernization Model
 ```
 
-Information may be traced forward and backward across these layers, but it does not silently change classification. In particular, model output cannot create or modify Observed evidence, and a human accepting an inference changes review state rather than turning it into a fact.
+The Domain Knowledge Model is one canonical asset, not two databases. Its semantic view, epistemic classification, and review state are separate axes. Information may be traced forward and backward across these layers, but it does not silently change any of them. Model output cannot create or modify Observed evidence; recovered knowledge remains `Inferred`; Proposed DDD Design remains `Proposed` even when a human accepts it. Acceptance changes review state only.
 
 ## Document map
 
@@ -52,7 +56,7 @@ Information may be traced forward and backward across these layers, but it does 
 |---|---|---|
 | Input | Local repository path and optional solution selection | Public Git URL, selected immutable revision, and validated snapshot |
 | Analysis | Bounded inventory, declarative solution/project reading, syntax-only C# extraction | Technology discovery plus planned structural, WCF, relationship, and persistence analyzers |
-| Output | Validated `domainlens.evidence.v1` Evidence Graph in canonical JSON | Evidence Graph, validated Finding Graph, versioned Domain Knowledge Model, and evidence-backed views |
+| Output | Validated `domainlens.evidence.v1` Evidence Graph in canonical JSON | Evidence Graph, validated Finding Graph, one versioned Domain Knowledge Model with recovered and proposed-DDD views, and evidence-backed presentations |
 | Runtime | Local CLI and in-process libraries | Azure-hosted UI/API/Core plus an isolated Windows-capable analyzer worker |
 | Reasoning | None | Fixed coordinator workflow, sealed Context Packs, allowlisted skills, and structured model output |
 | Persistence | Output JSON chosen by the CLI caller | Durable repository/run state, evidence, finding revisions, human decisions, and knowledge-model versions |
@@ -82,7 +86,7 @@ The following choices are intentionally unresolved. Each is owned by the documen
 | Runtime isolation | Job transport, Windows sandbox/hosting mechanism, worker limits, cancellation guarantees, cleanup, and Windows/Linux routing | [Runtime](03-runtime-architecture.md) |
 | Pipeline | State/checkpoint schema, retry categories and budgets, analysis-plan contract, human-pause expiry, and partial-run completion policy | [Analysis Pipeline](04-analysis-pipeline.md) |
 | Evidence | Schema evolution, multi-analyzer merge rules, Git revision capture, and cross-snapshot logical identity/rename handling | [Evidence](05-evidence-architecture.md) |
-| Domain knowledge | Concept cardinalities, confidence/support semantics, finding projection eligibility, version lineage, and decomposition-result schema | [Domain Knowledge](06-domain-knowledge-architecture.md) |
+| Domain knowledge | Concept cardinalities, semantic-view encoding/cross-view relationships, confidence/support semantics, finding projection eligibility, version lineage, and decomposition-result schema | [Domain Knowledge](06-domain-knowledge-architecture.md) |
 | Reasoning and context | Model provider/deployment/retention, structured finding schema, support thresholds, repair budget, ContextPack budget/version, and evaluation gate for semantic retrieval | [Agent and Reasoning](07-agent-reasoning-architecture.md) |
 | Persistence | Storage products, artifact/relational split, transactions, migrations, encryption, retention/deletion, and concurrent updates | [Persistence](08-persistence-architecture.md) |
 | Security | URL/DNS/redirect policy, egress/redaction/consent, secret handling, sandbox technology, workspace sanitization, and audit access | [Security](09-security-architecture.md) |
@@ -95,6 +99,7 @@ The following choices are intentionally unresolved. Each is owned by the documen
 This baseline normalizes two older ambiguities:
 
 - **Domain Knowledge Model** is the canonical term; older references to a “Persistent DDD Model” mean this model.
+- **Recovered Domain Knowledge** and **Proposed DDD Design** are explicitly tagged semantic views of that one model. They are not separate stores and must not be silently blended in queries or presentation.
 - **Repository Structure Scanner 0.1 is Milestone 1.** The deployment/security feasibility spike is a prerequisite numbered Milestone 0 in the updated roadmap.
 
 Pipeline lifecycle state and a scanner stage's result quality are separate dimensions. The product pipeline can be running, paused, completed, failed, or cancelled, while a deterministic analysis result can independently be `Success`, `PartialSuccess`, or `Failure`.

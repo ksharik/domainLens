@@ -6,9 +6,11 @@
 
 ## Version 1
 
-V1 is an end-to-end Azure-hosted product. A user can submit a public Git repository URL, monitor the Reverse DDD pipeline, answer clarification questions, explore evidence-backed DDD results, and persist the resulting domain model for future modernization.
+V1 is an end-to-end Azure-hosted product. A user can submit a public Git repository URL, monitor the Reverse DDD pipeline, answer clarification questions, explore recovered domain knowledge and explicitly proposed DDD designs, and persist the resulting domain model for future modernization.
 
 The first supported stack is **legacy C#/.NET Framework with WCF**. This is the first analyzer family, not DomainLens's architectural boundary.
+
+The analyzed application does not need to use DDD. DomainLens reconstructs existing domain knowledge from implementation evidence, then keeps any recommended DDD representation explicitly separate from what it recovered about the source system.
 
 See [Product Overview](docs/01-product-overview.md), the detailed
 [Architecture and Design Baseline](docs/architecture/README.md), the

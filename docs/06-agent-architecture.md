@@ -13,11 +13,13 @@ Git/snapshotting, path/network security, solution/project parsing, Roslyn analys
 
 As analyzer capabilities mature, deterministic evidence may include calls, mutations, persistence access, transaction constructs, authorization checks, state changes, messages, external dependencies and other implementation facts needed by the Domain Knowledge Model.
 
+Analyzers do not search for DDD-named types as a prerequisite. They establish implementation facts from applications that may be procedural, transaction-script based, anemic, layered, service-oriented, monolithic, partially domain-oriented, or explicitly DDD.
+
 ## AI reasoning responsibilities
 
-AI reasoning may interpret evidence into business capabilities; actors/use cases; domains/subdomains and Core/Supporting/Generic classification; bounded contexts/context maps; aggregate/root, entity/value-object, domain-service, repository and factory interpretations; commands/events/handlers; business rules/invariants/policies; workflows/state transitions; application/integration relationships; security-policy interpretations; data ownership/consistency boundaries; coupling characteristics; alternatives; unresolved business questions; and proposals.
+AI reasoning may recover evidence-backed knowledge about business capabilities; actors/use cases; domains/subdomains; behavior; business rules/invariants/policies; workflows/state transitions; application/integration relationships; security-policy interpretations; data ownership/consistency boundaries; and coupling. Separately, it may infer DDD structures that appear to exist or propose useful DDD representations such as contexts, aggregates, roots, entities, value objects, domain services, repositories, factories, commands, events, and handlers.
 
-AI reasoning must not convert inferred business meaning into deterministic evidence.
+AI reasoning must not convert inferred business meaning into deterministic evidence or present a Proposed DDD Design as a recovered feature of the source system.
 
 ## Initial skills
 

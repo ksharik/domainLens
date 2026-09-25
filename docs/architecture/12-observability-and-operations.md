@@ -186,8 +186,10 @@ which snapshot and versions were used, which worker and model operations occurre
 revision was accepted/rejected/challenged, and what projection entered a Domain Knowledge Model
 version.
 
-Review status is independent of finding classification. An audit event that records human
-acceptance of an Inferred finding must not relabel it Observed.
+Semantic view, review status, and finding classification are independent. An audit event that
+records human acceptance must not relabel an `Inferred` finding as `Observed`, relabel a
+`Proposed` finding as `Inferred` or `Observed`, or report Proposed DDD Design as recovered/as-is
+knowledge.
 
 ## Data protection and telemetry hygiene
 

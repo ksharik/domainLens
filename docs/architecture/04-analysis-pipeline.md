@@ -34,15 +34,21 @@ flowchart LR
     Source[Repository snapshot]
     Evidence[Deterministic Evidence Graph]
     Findings[Semantic Finding Graph]
-    Knowledge[Domain Knowledge Model]
+    subgraph Knowledge["Domain Knowledge Model — one canonical asset"]
+        direction TB
+        Recovered[Recovered Domain Knowledge]
+        Proposed[Proposed DDD Design]
+    end
     Decomposition[Decomposition Analysis]
     Modernization[Modernization Model]
     Target[Candidate Target Architecture]
 
     Source -->|deterministic analyzers| Evidence
     Evidence -->|evidence-selected model reasoning| Findings
-    Findings -->|validation and human decisions| Knowledge
-    Knowledge -->|separate analysis stage| Decomposition
+    Findings -->|validated Inferred findings| Recovered
+    Findings -->|validated Proposed findings| Proposed
+    Recovered -->|separate analysis stage| Decomposition
+    Proposed -->|separate analysis stage| Decomposition
     Decomposition --> Modernization
     Modernization --> Target
 ```
@@ -51,6 +57,20 @@ The Evidence Graph is the only CURRENT layer in this diagram. Finding,
 knowledge, decomposition, and modernization models are PLANNED or FUTURE. In
 particular, a proposed aggregate, bounded context, or decomposition is not a
 source-code fact.
+
+## Source-model neutrality
+
+The pipeline must work whether the analyzed application is layered, transaction-script based,
+anemic, service-oriented, procedural, monolithic, partly domain-oriented, or explicitly DDD. No
+stage may require source constructs named `AggregateRoot`, `Entity`, `ValueObject`, `DomainEvent`,
+or `BoundedContext`. Such names are deterministic declaration evidence when present, but are not
+sufficient proof of semantics and are not required for semantic reasoning.
+
+Deterministic analysis instead establishes supported facts about behavior, rules, invariants, data
+relationships, mutation paths, transaction boundaries, workflows, state transitions, service
+operations, persistence, messages, security controls, dependencies, and coupling. Reasoning can
+then reconstruct existing domain knowledge or propose a DDD representation without confusing the
+two results.
 
 ## CURRENT — Milestone 1 local scan
 
@@ -171,12 +191,17 @@ flowchart TD
     Relations[Relationship and persistence analyzers]
     Evidence[Validated Evidence Graph]
     Context[ContextPack construction]
-    DiscoveryReasoning[Domain discovery reasoning]
-    DDD[DDD modeling reasoning]
-    FindingValidation[Finding validation]
+    DiscoveryReasoning[Recovered domain-knowledge reasoning]
+    RecoveryValidation[Recovered-finding validation]
+    DDD[Proposed DDD-design reasoning]
+    DesignValidation[Proposed-DDD finding validation]
     Human{Clarification or challenge needed?}
     Review[Human review and clarification]
-    Knowledge[Versioned Domain Knowledge Model]
+    subgraph Knowledge["Versioned Domain Knowledge Model"]
+        direction TB
+        RecoveredKnowledge[Recovered Domain Knowledge]
+        ProposedDesign[Proposed DDD Design]
+    end
     Results[Persistent results and result explorer]
 
     User --> Intake --> Snapshot --> Discovery --> Plan
@@ -186,9 +211,11 @@ flowchart TD
     Structural --> Evidence
     WCF --> Evidence
     Relations --> Evidence
-    Evidence --> Context --> DiscoveryReasoning --> DDD --> FindingValidation --> Human
+    Evidence --> Context --> DiscoveryReasoning --> RecoveryValidation
+    RecoveryValidation -->|valid recovered findings| DDD --> DesignValidation --> Human
     Human -->|yes| Review --> Context
-    Human -->|no| Knowledge --> Results
+    Human -->|"no / Inferred"| RecoveredKnowledge --> Results
+    Human -->|"no / Proposed"| ProposedDesign --> Results
 ```
 
 ### Planned stage responsibilities
@@ -210,19 +237,25 @@ flowchart TD
   graph traversal and lexical retrieval. Repository content remains quoted
   data. Unrestricted repository access is not given to the model, and V1 does
   not require a vector database.
-- **Domain discovery and DDD modeling** produce structured semantic findings,
-  never Evidence Graph records. Findings distinguish `Inferred` from
-  `Proposed`, link supporting and contradictory evidence, state confidence,
-  and retain unresolved questions.
-- **Finding validation** applies schema validation, evidence-reference checks,
-  policy checks, and deterministic consistency rules before a finding can
-  enter review.
+- **Recovered domain discovery** produces `Inferred` findings about the business and existing
+  system from supported implementation evidence. It does not require DDD constructs or names, and
+  it may recover an existing DDD pattern only when behavior and relationships support that claim.
+- **Proposed DDD design** produces `Proposed` findings that recommend how recovered concepts could
+  be represented with DDD. A proposal never asserts that the corresponding construct already
+  exists in the source. Both reasoning activities produce semantic findings, never Evidence Graph
+  records, and retain supporting/counterevidence, assumptions, alternatives, confidence/support,
+  and unresolved questions.
+- **Finding validation** follows each reasoning activity and applies schema validation,
+  evidence-reference checks, semantic-view/classification rules, policy checks, and deterministic
+  consistency rules before a finding can enter review or be supplied to downstream reasoning.
 - **Human review** may accept, reject, challenge, provide clarification, or
   request re-analysis. A challenge creates a new reasoning attempt and
   revision; it does not mutate the historical evidence snapshot.
-- **Knowledge materialization** projects validated findings and human decisions
-  into a versioned Domain Knowledge Model. Generated Markdown is a view, not
-  its canonical persistence format.
+- **Knowledge materialization** projects validated findings and human decisions into one versioned
+  Domain Knowledge Model with separate Recovered Domain Knowledge and Proposed DDD Design views.
+  Every projected record retains its source findings, evidence, semantic view, classification,
+  assumptions, support/confidence, alternatives, review state, and revision history. Generated
+  Markdown is a view, not its canonical persistence format.
 
 ## PLANNED — orchestration state and resumability
 
@@ -267,6 +300,10 @@ stateDiagram-v2
     Cancelled --> [*]
 ```
 
+Human review followed by eventual entry into `MaterializingKnowledge` changes review state or
+creates a revised finding; it does not change epistemic classification. An accepted `Proposed` DDD
+design remains `Proposed`, and an accepted `Inferred` recovery never becomes `Observed`.
+
 Resumability requires durable stage inputs and outputs rather than replaying an
 opaque agent conversation. At a minimum, a future checkpoint must identify the
 repository snapshot, analysis plan, analyzer versions, evidence schema and
@@ -285,8 +322,8 @@ reasoning for that artifact.
 |---|---|---|---|
 | Repository bytes and source spans | Captures and verifies | Receives only selected excerpts/evidence | Chooses repository and scope |
 | Evidence Graph | Creates and validates | Read-only input; cannot create `Observed` evidence | May report missing or incorrect evidence |
-| Findings | Validates schema and evidence links | Produces `Inferred` or `Proposed` candidates | Accepts, rejects, clarifies, or challenges |
-| Domain Knowledge Model | Applies versioned transitions and constraints | Suggests semantic content through findings | Owns material decisions |
+| Findings | Validates schema, evidence links, semantic view, and classification | Produces `Inferred` recovered-knowledge or `Proposed` DDD-design candidates | Accepts, rejects, clarifies, or challenges without changing classification |
+| Domain Knowledge Model | Materializes one versioned asset and preserves the two semantic views | Suggests semantic content through findings only | Reviews each explicitly labeled view; cannot turn a proposal into recovered knowledge |
 | Pipeline | Enforces state, authorization, retry, and budgets | Cannot advance state directly | Starts, cancels, and resumes authorized work |
 
 Agent orchestration chooses predefined tools and skills under application
@@ -316,7 +353,10 @@ Later releases may add decomposition analysis, modernization modeling,
 additional language/framework worker pools, semantic or vector retrieval when
 evaluation demonstrates value, and richer multi-agent coordination. These
 stages consume a versioned Domain Knowledge Model; they do not bypass or alter
-the deterministic Evidence Graph.
+the deterministic Evidence Graph. Proposed DDD Design remains part of Reverse
+DDD: Decomposition separately asks how the existing application could be
+separated or reorganized, while modernization asks what future implementation
+architecture should be built.
 
 ## Open decisions
 

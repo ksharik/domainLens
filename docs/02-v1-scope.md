@@ -18,9 +18,13 @@
 - Persistent analysis runs and Domain Knowledge Models.
 - Evidence-backed result exploration.
 
+The analyzed application may use traditional N-tier, transaction-script, anemic-domain-model, service-oriented, procedural, tightly coupled monolithic, partially domain-oriented, or explicit DDD styles. V1 shall not require DDD constructs or naming conventions in the source. In particular, names such as `AggregateRoot`, `Entity`, `ValueObject`, `DomainEvent`, or `BoundedContext` are neither required nor sufficient for a DDD conclusion.
+
+Domain reconstruction instead uses supported evidence about behavior, business rules, invariants, data relationships, mutation paths, transaction boundaries, workflows, state transitions, service operations, persistence, messages, security policies, dependencies, and coupling.
+
 ## Domain Knowledge Model outputs
 
-Where evidence supports them, V1 shall identify or propose:
+The single canonical Domain Knowledge Model shall expose **Recovered Domain Knowledge** separately from **Proposed DDD Design**. Where evidence supports them, V1 shall recover, infer, or propose the following concepts without implying that a proposal existed in the source system:
 
 ### Business architecture
 - Business capabilities.
@@ -86,7 +90,7 @@ Where evidence supports them, V1 shall identify or propose:
 - Caching.
 - Transaction-consistency characteristics.
 
-DomainLens shall preserve the distinction between observed implementation evidence and inferred/proposed domain meaning. Absence of evidence in analyzed artifacts must not be represented as proof that a business rule, security policy or other concept does not exist.
+DomainLens shall preserve the distinction between observed implementation evidence and inferred/proposed domain meaning. Each DKM view shall retain source findings, evidence, classification, assumptions, confidence/support, alternatives, review state, and revision history. Human acceptance changes review state only: an accepted Proposed DDD concept remains `Proposed`. Absence of evidence in analyzed artifacts must not be represented as proof that a business rule, security policy or other concept does not exist.
 
 ## Excluded from V1
 

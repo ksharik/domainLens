@@ -406,10 +406,11 @@ fact.
 A structured finding should minimally retain:
 
 - a finding identity and revision;
+- semantic view (`RecoveredDomainKnowledge` or `ProposedDddDesign`);
 - `Inferred` or `Proposed` classification;
 - a typed concept and structured relationships;
 - supporting evidence IDs and counterevidence IDs;
-- reasoning summary, confidence, and stated limitations;
+- reasoning summary, assumptions, alternatives, confidence, support, coverage, and stated limitations;
 - unresolved questions;
 - ContextPack identity;
 - analyzer, model, prompt, and skill versions; and
@@ -418,7 +419,9 @@ A structured finding should minimally retain:
 The exact schema remains an OPEN DECISION. It must support multiple competing
 interpretations without overwriting evidence or a previous finding revision.
 Accepting a finding into the Domain Knowledge Model records a decision; it does
-not change its origin classification.
+not change its origin classification or semantic view. In particular, accepted
+Proposed DDD Design remains `Proposed` and cannot appear as recovered/as-is
+knowledge.
 
 ## PLANNED — analyzer extension contract
 

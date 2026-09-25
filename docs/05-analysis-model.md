@@ -18,13 +18,15 @@ Contains semantic interpretations and proposals derived from evidence. Examples 
 
 A model response cannot create an Observed fact.
 
+Findings must be source-model neutral. A class or member named `AggregateRoot`, `Entity`, `ValueObject`, `DomainEvent`, or `BoundedContext` is an Observed declaration only; its name alone does not establish its domain meaning. Conversely, the absence of those names does not prevent evidence-backed reconstruction from behavior, rules, invariants, data/mutation/transaction relationships, workflows, state, operations, persistence, messages, security, dependencies, and coupling.
+
 ## Classification
 
 - **Observed** — deterministically established.
 - **Inferred** — interpretation supported by evidence.
 - **Proposed** — architectural/domain recommendation.
 
-Review status is independent of classification. Human acceptance of an inference does not convert it into an observed fact.
+Review status is independent of classification. Human acceptance of an inference does not convert it into an observed fact, and acceptance of a proposal does not convert it into an inference or an observed fact.
 
 ## Provenance
 
@@ -35,6 +37,13 @@ Findings preserve atomic claim, concept type, classification, subject nodes, sup
 ## Domain Knowledge Model
 
 In planned V1, eligible validated findings project through deterministic application logic into a queryable, persistent Domain Knowledge Model. Projection eligibility and conflict handling remain open design decisions.
+
+The DKM is one canonical asset with two semantic views:
+
+- **Recovered Domain Knowledge** contains `Inferred` reconstructions of the existing system and business, linked to `Observed` evidence. It may recover a DDD pattern that the implementation actually appears to enforce, but does not treat a matching type name as proof.
+- **Proposed DDD Design** contains `Proposed` DDD representations that DomainLens recommends even when no corresponding construct exists in the source system.
+
+Every projected record retains its view, source Finding IDs, classification, evidence, assumptions, support/confidence, alternatives, review state, and revision history. A claim that mixes recovered and proposed meaning must be split into atomic findings before projection.
 
 ### Business Architecture
 - Business Capabilities
@@ -125,10 +134,10 @@ It should distinguish data ownership from consumption and retain shared-table/sh
 
 ## Decomposition boundary
 
-The Domain Knowledge Model describes the reconstructed domain and implementation relationships. **Decomposition Analysis operates over this model; decomposition recommendations are not themselves part of deterministic Evidence Graph observations.**
+The Domain Knowledge Model describes both reconstructed domain/implementation knowledge and explicitly labeled proposed DDD representations. **Decomposition Analysis operates over this model; Proposed DDD Design is not Decomposition Analysis, and neither DDD nor decomposition recommendations are deterministic Evidence Graph observations.**
 
 This separation supports:
 
-`Source Code → Evidence Graph → Semantic Findings → Domain Knowledge Model → Decomposition Analysis → Modernization Model → Target Architecture`
+`Source Code → Evidence Graph → Semantic Findings → Domain Knowledge Model { Recovered Domain Knowledge + Proposed DDD Design } → Decomposition Analysis → Modernization Model → Target Architecture`
 
 The Domain Knowledge Model is therefore the durable platform asset for future modernization.
