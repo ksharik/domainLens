@@ -3,7 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace DomainLens.Analyzer.Host;
+namespace DomainLens.Analyzer.Protocol;
 
 /// <summary>Stable identifiers and limits for the analyzer process protocol.</summary>
 public static class AnalyzerProtocol

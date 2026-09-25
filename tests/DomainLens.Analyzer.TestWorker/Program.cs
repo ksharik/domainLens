@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
-using DomainLens.Analyzer.Host;
+using DomainLens.Analyzer.Protocol;
 using DomainLens.Core;
 using DomainLens.Scanner;
 using DomainLens.Semantics;

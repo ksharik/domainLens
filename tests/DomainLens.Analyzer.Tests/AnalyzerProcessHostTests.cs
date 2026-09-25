@@ -179,6 +179,122 @@ public sealed class AnalyzerProcessHostTests
     }
 
     [Fact]
+    public async Task LargeAnalyzerExcludedDirectoryTreeIsAbsentFromStagedRepository()
+    {
+        using var harness = TestHarness.Create();
+        var includedDirectory = Path.Combine(harness.RepositoryPath, "src");
+        var excludedDirectory = Path.Combine(includedDirectory, "obj");
+        Directory.CreateDirectory(excludedDirectory);
+        for (var index = 0; index < 128; index++)
+        {
+            await File.WriteAllTextAsync(
+                Path.Combine(excludedDirectory, $"generated-{index:D3}.cs"),
+                "namespace Generated; internal sealed class Artifact { }");
+        }
+
+        var stagedRepository = Path.Combine(harness.WorkspaceRoot, "staged-large-exclusion");
+        var limits = TestHarness.Limits(TimeSpan.FromSeconds(10)) with
+        {
+            MaximumStagedFileCount = 2,
+            MaximumStagedEntryCount = 4,
+        };
+
+        var state = await StagedWorkspace.CopyRepositoryAsync(
+            harness.RepositoryPath,
+            stagedRepository,
+            limits,
+            CancellationToken.None);
+
+        Assert.True(Directory.Exists(Path.Combine(stagedRepository, "src")));
+        Assert.False(Directory.Exists(Path.Combine(stagedRepository, "src", "obj")));
+        Assert.Equal(3, state.EntryCount);
+        Assert.DoesNotContain(
+            state.ExpectedAnalysisSnapshot.Manifest,
+            entry => entry.Path.Contains("obj", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task AnalyzerExcludedContentsDoNotConsumeFileOrByteLimits()
+    {
+        using var harness = TestHarness.Create();
+        var excludedDirectory = Path.Combine(harness.RepositoryPath, "bin");
+        Directory.CreateDirectory(excludedDirectory);
+        for (var index = 0; index < 8; index++)
+        {
+            await File.WriteAllBytesAsync(
+                Path.Combine(excludedDirectory, $"ignored-{index:D2}.bin"),
+                new byte[4096]);
+        }
+
+        var includedFiles = new[]
+        {
+            Path.Combine(harness.RepositoryPath, "Sample.csproj"),
+            Path.Combine(harness.RepositoryPath, "Widget.cs"),
+        };
+        var includedBytes = includedFiles.Sum(path => new FileInfo(path).Length);
+        var maximumIncludedFileBytes = includedFiles.Max(path => new FileInfo(path).Length);
+        var stagedRepository = Path.Combine(harness.WorkspaceRoot, "staged-limit-exclusion");
+        var limits = TestHarness.Limits(TimeSpan.FromSeconds(10)) with
+        {
+            MaximumStagedFileCount = includedFiles.Length,
+            MaximumStagedEntryCount = includedFiles.Length + 1,
+            MaximumStagedFileSizeBytes = maximumIncludedFileBytes,
+            MaximumStagedTotalBytes = includedBytes,
+        };
+
+        var state = await StagedWorkspace.CopyRepositoryAsync(
+            harness.RepositoryPath,
+            stagedRepository,
+            limits,
+            CancellationToken.None);
+
+        Assert.False(Directory.Exists(Path.Combine(stagedRepository, "bin")));
+        Assert.Equal(includedFiles.Length, state.EntryCount);
+        Assert.Equal(includedFiles.Length, state.ExpectedAnalysisSnapshot.Manifest.Count);
+        Assert.Equal(
+            includedBytes,
+            state.ExpectedAnalysisSnapshot.Manifest.Sum(entry => entry.Length));
+    }
+
+    [Fact]
+    public async Task StagedSnapshotIdentityMatchesTheScannerOutputWhenExclusionsExist()
+    {
+        using var harness = TestHarness.Create();
+        var includedDirectory = Path.Combine(harness.RepositoryPath, "src");
+        Directory.CreateDirectory(includedDirectory);
+        await File.WriteAllTextAsync(
+            Path.Combine(includedDirectory, "Included.cs"),
+            "namespace Sample; public sealed class Included { }");
+        var excludedDirectory = Path.Combine(harness.RepositoryPath, "obj", "generated");
+        Directory.CreateDirectory(excludedDirectory);
+        await File.WriteAllTextAsync(
+            Path.Combine(excludedDirectory, "Ignored.cs"),
+            "namespace Sample; public sealed class Ignored { }");
+
+        var expectedSnapshot = RepositorySnapshot.Create(
+            null,
+            new[]
+            {
+                CreateManifestEntry(harness.RepositoryPath, "Sample.csproj"),
+                CreateManifestEntry(harness.RepositoryPath, "Widget.cs"),
+                CreateManifestEntry(harness.RepositoryPath, "src/Included.cs"),
+            });
+
+        var result = await harness.CreateRealHost()
+            .RunAsync(new AnalyzerProcessRequest(harness.RepositoryPath));
+
+        Assert.True(result.IsAccepted, FormatFailure(result));
+        Assert.Equal(expectedSnapshot.SnapshotId, result.Analysis!.Snapshot.SnapshotId);
+        Assert.Equal(
+            expectedSnapshot.Manifest.ToArray(),
+            result.Analysis.Snapshot.Manifest.ToArray());
+        Assert.DoesNotContain(
+            result.Analysis.Snapshot.Manifest,
+            entry => entry.Path.Contains("obj", StringComparison.OrdinalIgnoreCase));
+        AssertWorkspaceWasCleaned(result);
+    }
+
+    [Fact]
     public async Task NestedRepositoryReparsePointIsRejectedBeforeWorkerStarts()
     {
         if (!OperatingSystem.IsWindows())
@@ -189,7 +305,7 @@ public sealed class AnalyzerProcessHostTests
         using var harness = TestHarness.Create();
         var targetPath = Path.GetFullPath(
             Path.Combine(harness.RepositoryPath, "..", "nested-junction-target"));
-        var junctionPath = Path.Combine(harness.RepositoryPath, "linked-content");
+        var junctionPath = Path.Combine(harness.RepositoryPath, "obj");
         Directory.CreateDirectory(targetPath);
         await File.WriteAllTextAsync(Path.Combine(targetPath, "outside.txt"), "outside");
         await CreateDirectoryJunctionAsync(junctionPath, targetPath);
@@ -392,7 +508,7 @@ public sealed class AnalyzerProcessHostTests
     }
 
     [Fact]
-    public async Task WorkerMutationOfTheStagedRepositoryRejectsOtherwiseValidOutput()
+    public async Task WorkerCreatedAnalyzerExcludedTreeRejectsOtherwiseValidOutput()
     {
         using var harness = TestHarness.Create();
 
@@ -400,8 +516,11 @@ public sealed class AnalyzerProcessHostTests
             .RunAsync(new AnalyzerProcessRequest(harness.RepositoryPath));
 
         Assert.Equal(AnalyzerProcessTerminalOutcome.StagedRepositoryModified, result.Outcome);
+        Assert.NotNull(result.WorkerProcessId);
         Assert.Null(result.Analysis);
-        Assert.Contains(result.Diagnostics, item => item.Code == "host.worker.repository-modified");
+        Assert.Contains(result.Diagnostics, item =>
+            item.Code == "host.worker.repository-modified" &&
+            item.Message.Contains("changed the staged repository", StringComparison.Ordinal));
         AssertWorkspaceWasCleaned(result);
     }
 
@@ -613,6 +732,19 @@ public sealed class AnalyzerProcessHostTests
         $"Outcome={result.Outcome}; Exit={result.ExitCode}; " +
         $"Diagnostics={string.Join(" | ", result.Diagnostics.Select(item => $"{item.Code}: {item.Message}"))}; " +
         $"StdOut={result.StandardOutput}; StdErr={result.StandardError}";
+
+    private static ManifestEntry CreateManifestEntry(string repositoryPath, string relativePath)
+    {
+        var normalizedPath = CanonicalIdentity.NormalizeRepositoryPath(relativePath);
+        var fullPath = Path.Combine(
+            repositoryPath,
+            normalizedPath.Replace('/', Path.DirectorySeparatorChar));
+        var content = File.ReadAllBytes(fullPath);
+        return new ManifestEntry(
+            normalizedPath,
+            CanonicalIdentity.Sha256Hex(content),
+            content.LongLength);
+    }
 
     private sealed class TestHarness : IDisposable
     {

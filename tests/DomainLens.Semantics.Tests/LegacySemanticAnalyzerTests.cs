@@ -218,6 +218,154 @@ public sealed class LegacySemanticAnalyzerTests
     }
 
     [Fact]
+    public async Task Source_larger_than_manifest_expectation_is_rejected_as_a_length_mismatch()
+    {
+        using var fixture = TemporaryFixture.Copy();
+        var document = await ScanAsync(fixture.Path);
+        var sourcePath = System.IO.Path.Combine(fixture.Path, "CustomerService.cs");
+        var original = await File.ReadAllBytesAsync(sourcePath);
+        await File.WriteAllBytesAsync(sourcePath, original.Concat(new byte[] { (byte)' ' }).ToArray());
+
+        var result = await new LegacySemanticAnalyzer().AnalyzeAsync(fixture.Path, document);
+
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code == SemanticDiagnosticCode.ManifestLengthMismatch &&
+            diagnostic.RelativePath == "CustomerService.cs");
+        Assert.DoesNotContain(result.Observations, observation =>
+            observation.RelativePath == "CustomerService.cs");
+    }
+
+    [Fact]
+    public async Task Source_shorter_than_manifest_expectation_is_rejected_as_a_length_mismatch()
+    {
+        using var fixture = TemporaryFixture.Copy();
+        var document = await ScanAsync(fixture.Path);
+        var sourcePath = System.IO.Path.Combine(fixture.Path, "CustomerService.cs");
+        var original = await File.ReadAllBytesAsync(sourcePath);
+        await File.WriteAllBytesAsync(sourcePath, original[..^1]);
+
+        var result = await new LegacySemanticAnalyzer().AnalyzeAsync(fixture.Path, document);
+
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code == SemanticDiagnosticCode.ManifestLengthMismatch &&
+            diagnostic.RelativePath == "CustomerService.cs");
+        Assert.DoesNotContain(result.Observations, observation =>
+            observation.RelativePath == "CustomerService.cs");
+    }
+
+    [Fact]
+    public async Task Same_length_source_change_is_rejected_as_a_hash_mismatch()
+    {
+        using var fixture = TemporaryFixture.Copy();
+        var document = await ScanAsync(fixture.Path);
+        var sourcePath = System.IO.Path.Combine(fixture.Path, "CustomerService.cs");
+        var original = await File.ReadAllTextAsync(sourcePath);
+        var changed = original.Replace("CustomerService", "XustomerService", StringComparison.Ordinal);
+        Assert.NotEqual(original, changed);
+        Assert.Equal(Encoding.UTF8.GetByteCount(original), Encoding.UTF8.GetByteCount(changed));
+        await File.WriteAllTextAsync(sourcePath, changed, new UTF8Encoding(false));
+
+        var result = await new LegacySemanticAnalyzer().AnalyzeAsync(fixture.Path, document);
+
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code == SemanticDiagnosticCode.ManifestHashMismatch &&
+            diagnostic.RelativePath == "CustomerService.cs");
+        Assert.DoesNotContain(result.Diagnostics, diagnostic =>
+            diagnostic.Code == SemanticDiagnosticCode.ManifestLengthMismatch &&
+            diagnostic.RelativePath == "CustomerService.cs");
+        Assert.DoesNotContain(result.Observations, observation =>
+            observation.RelativePath == "CustomerService.cs");
+    }
+
+    [Fact]
+    public async Task Obvious_length_drift_is_rejected_without_consuming_source_bytes()
+    {
+        var expected = Encoding.UTF8.GetBytes("internal sealed class Expected { }");
+        var enlarged = expected.Concat(new byte[1024 * 1024]).ToArray();
+        await using var source = new TrackingReadStream(enlarged, canSeek: true);
+        var entry = new ManifestEntry(
+            "Expected.cs",
+            CanonicalIdentity.Sha256Hex(expected),
+            expected.LongLength);
+
+        var result = await LegacySemanticAnalyzer.ReadBoundedSourceAsync(
+            source,
+            entry,
+            CancellationToken.None);
+
+        Assert.Equal(ManifestSourceReadStatus.LengthMismatch, result.Status);
+        Assert.Null(result.Bytes);
+        Assert.Equal(0, source.BytesRead);
+        Assert.Equal(0, source.ReadCallCount);
+    }
+
+    [Fact]
+    public async Task Growth_during_read_is_rejected_without_consuming_beyond_the_captured_bound()
+    {
+        var expected = Encoding.UTF8.GetBytes("internal sealed class Expected { }");
+        var enlarged = expected.Concat(new byte[1024 * 1024]).ToArray();
+        await using var source = new TrackingReadStream(
+            enlarged,
+            canSeek: true,
+            initialReportedLength: expected.LongLength);
+        var entry = new ManifestEntry(
+            "Expected.cs",
+            CanonicalIdentity.Sha256Hex(expected),
+            expected.LongLength);
+
+        var result = await LegacySemanticAnalyzer.ReadBoundedSourceAsync(
+            source,
+            entry,
+            CancellationToken.None);
+
+        Assert.Equal(ManifestSourceReadStatus.LengthMismatch, result.Status);
+        Assert.Null(result.Bytes);
+        Assert.Equal(expected.Length, source.BytesRead);
+        Assert.Equal(expected.Length, source.LastRequestedCount);
+        Assert.Equal(1, source.ReadCallCount);
+    }
+
+    [Fact]
+    public async Task Cancellation_during_bounded_source_read_is_propagated()
+    {
+        var content = Encoding.UTF8.GetBytes(new string('a', 256));
+        using var cancellation = new CancellationTokenSource();
+        await using var source = new TrackingReadStream(
+            content,
+            canSeek: true,
+            maximumBytesPerRead: 1,
+            afterFirstRead: cancellation.Cancel);
+        var entry = new ManifestEntry(
+            "Cancelled.cs",
+            CanonicalIdentity.Sha256Hex(content),
+            content.LongLength);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            LegacySemanticAnalyzer.ReadBoundedSourceAsync(source, entry, cancellation.Token));
+
+        Assert.Equal(1, source.BytesRead);
+    }
+
+    [Fact]
+    public async Task Valid_manifest_source_still_analyzes_after_bounded_verification()
+    {
+        using var fixture = TemporaryFixture.Copy();
+        var document = await ScanAsync(fixture.Path);
+
+        var result = await new LegacySemanticAnalyzer().AnalyzeAsync(fixture.Path, document);
+
+        Assert.DoesNotContain(result.Diagnostics, diagnostic =>
+            diagnostic.Code is SemanticDiagnosticCode.ManifestLengthMismatch or
+                SemanticDiagnosticCode.ManifestHashMismatch or
+                SemanticDiagnosticCode.SourceReadFailed);
+        Assert.Contains(result.Observations, observation =>
+            observation.Kind == SemanticObservationKind.DeclaredType &&
+            observation.RelativePath == "CustomerService.cs" &&
+            observation.ResolvedSymbol == "Legacy.Semantic.CustomerService");
+        AssertRepositoryRemainsInert(fixture.Path);
+    }
+
+    [Fact]
     public async Task Pre_cancelled_analysis_stops_before_source_or_compiler_work()
     {
         using var fixture = TemporaryFixture.Copy();
@@ -422,6 +570,92 @@ public sealed class LegacySemanticAnalyzerTests
         Assert.False(Directory.Exists(System.IO.Path.Combine(repositoryPath, "obj")));
         Assert.Empty(Directory.EnumerateFileSystemEntries(repositoryPath, "project.assets.json", SearchOption.AllDirectories));
         Assert.Empty(Directory.EnumerateDirectories(repositoryPath, "assets", SearchOption.AllDirectories));
+    }
+
+    private sealed class TrackingReadStream : Stream
+    {
+        private readonly byte[] _content;
+        private readonly bool _canSeek;
+        private readonly int _maximumBytesPerRead;
+        private readonly Action? _afterFirstRead;
+        private readonly long? _initialReportedLength;
+        private int _position;
+
+        public TrackingReadStream(
+            byte[] content,
+            bool canSeek,
+            int maximumBytesPerRead = int.MaxValue,
+            Action? afterFirstRead = null,
+            long? initialReportedLength = null)
+        {
+            _content = content;
+            _canSeek = canSeek;
+            _maximumBytesPerRead = maximumBytesPerRead;
+            _afterFirstRead = afterFirstRead;
+            _initialReportedLength = initialReportedLength;
+        }
+
+        public int BytesRead { get; private set; }
+
+        public int ReadCallCount { get; private set; }
+
+        public int LastRequestedCount { get; private set; }
+
+        public override bool CanRead => true;
+
+        public override bool CanSeek => _canSeek;
+
+        public override bool CanWrite => false;
+
+        public override long Length =>
+            ReadCallCount == 0 && _initialReportedLength is not null
+                ? _initialReportedLength.Value
+                : _content.LongLength;
+
+        public override long Position
+        {
+            get => _position;
+            set => throw new NotSupportedException();
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) =>
+            ReadCore(buffer.AsSpan(offset, count));
+
+        public override ValueTask<int> ReadAsync(
+            Memory<byte> buffer,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return ValueTask.FromResult(ReadCore(buffer.Span));
+        }
+
+        public override void Flush()
+        {
+        }
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        private int ReadCore(Span<byte> destination)
+        {
+            ReadCallCount++;
+            LastRequestedCount = destination.Length;
+            var count = Math.Min(
+                Math.Min(destination.Length, _maximumBytesPerRead),
+                _content.Length - _position);
+            _content.AsSpan(_position, count).CopyTo(destination);
+            _position += count;
+            BytesRead += count;
+            if (ReadCallCount == 1 && count > 0)
+            {
+                _afterFirstRead?.Invoke();
+            }
+
+            return count;
+        }
     }
 
     private sealed class TemporaryFixture : IDisposable

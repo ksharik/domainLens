@@ -30,7 +30,7 @@ The status terms in this report are deliberately narrow:
 | Can a worker crash be contained as a typed attempt failure? | **PROVEN** | `WorkerCrashIsContainedAndWorkspaceIsCleaned` verifies that a child exit does not crash the test host and that cleanup completes. |
 | Can a deadline or caller cancellation force rejection? | **PROVEN within the tested scope** | `WallClockTimeoutForcesRejectionAndCleanupAfterDelayedOutput` and `CallerCancellationKillsWorkerAndRejectsAnyOutput` verify rejection during worker lifetime and no acceptance after either control becomes terminal. Synchronous trusted validation is not independently preempted. |
 | Can the tested descendant process be terminated? | **PROVEN for the fixture; FEASIBLE WITH CONSTRAINTS generally** | `TimeoutTerminatesDescendantProcessTree` verifies a child exits when the still-running worker parent is tree-killed and reaped. Detached descendants after parent exit are **NOT PROVEN**. |
-| Can repository content be staged without following reparse points? | **PROVEN for implemented checks** | Staging rejects a reparse-point root or entry; bounds files, total entries, relative depth, and bytes; and uses a unique per-job workspace. Race-free filesystem confinement is **NOT PROVEN**. |
+| Can repository content be staged without following reparse points? | **PROVEN for implemented checks** | Staging rejects a reparse-point root or entry; bounds files, total entries, relative depth, and bytes; omits analyzer-excluded source trees without traversing or copying their contents; and uses a unique per-job workspace. Race-free filesystem confinement is **NOT PROVEN**. |
 | Can caller environment secrets be withheld? | **PROVEN for environment inheritance** | `WorkerDoesNotInheritCallerSecretEnvironmentVariable` verifies the sentinel is absent, `PATH` is absent, and CWD/`TEMP`/`TMP` are job-scoped. A different OS identity is **NOT PROVEN**. |
 | Can worker output be accepted through deterministic gates? | **PROVEN for the spike contracts** | The host bounds output, correlates protocol/job/PID, binds the graph snapshot ID to the staged manifest, rechecks the staged tree after worker exit, checks JSON hashes, deserializes strictly, and applies trusted result validators. This is integrity validation, not producer authentication. |
 | Can .NET Framework 4.7.2 symbols be bound without repository build evaluation? | **PROVEN for the checked-in net472 slice** | The semantic analyzer uses one flattened compilation of repository-manifest C# sources plus the exact tool-owned reference catalog. The declared compilation and source-binding resolution is `Partial`; repository MSBuild is not evaluated. |
@@ -40,17 +40,21 @@ The status terms in this report are deliberately narrow:
 
 ## Executable slice
 
-The spike introduces four runtime/test roles:
+The spike introduces five runtime/test roles:
 
 | Project | Spike responsibility |
 |---|---|
-| `DomainLens.Analyzer.Host` | Trusted launcher, bounded staging, versioned job/result protocol, deadline/cancellation, process termination/reaping, result gates, and typed cleanup outcome. |
+| `DomainLens.Analyzer.Protocol` | Neutral, dependency-light wire contracts and strict serialization for the versioned job/result exchange. |
+| `DomainLens.Analyzer.Host` | Trusted launcher, bounded staging, protocol consumption, deadline/cancellation, process termination/reaping, result gates, and typed cleanup outcome. |
 | `DomainLens.Analyzer.Worker` | Child entry point that invokes the scanner and legacy semantic analyzer against the staged repository and atomically writes a result envelope. |
 | `DomainLens.Semantics` | Narrow compiler-backed symbol enrichment over one flattened set of manifest-verified C# sources and the exact tool-owned .NET Framework 4.7.2 reference catalog, with declared `Partial` resolution. |
 | `DomainLens.Analyzer.TestWorker` | Trusted fault-injection executable for crash, hang, delayed result, malformed/tampered result, environment, output-bound, and descendant-process tests. |
 
-The host and worker communicate through `domainlens.analyzer-process.v1`. A generated job ID and
-the launched PID correlate a result to one attempt. Process terminal outcome is a separate type
+The host and worker communicate through `domainlens.analyzer-process.v1`, with both depending on
+the neutral `DomainLens.Analyzer.Protocol` project: `Host -> Protocol <- Worker`. The worker has no
+project reference to the host, and host-only process, staging, validation, and cleanup types remain
+in `DomainLens.Analyzer.Host`. A generated job ID and the launched PID correlate a result to one
+attempt. Process terminal outcome is a separate type
 from the Evidence Graph's `AnalysisStatus`; `ValidFailureDocumentIsDistinctFromProcessFailure`
 demonstrates that a trustworthy `AnalysisStatus.Failure` document can cross a successful process
 and protocol exchange.
@@ -78,9 +82,18 @@ total-entry bound is applied before a wide directory is fully materialized for s
 rejection. `EveryJobUsesADistinctWorkspace` covers per-job uniqueness. Stdout/stderr retention
 and result-file byte reads are separately capped.
 
+**PROVEN:** when initial staging encounters an analyzer-excluded directory name (`.git`, `.hg`,
+`.svn`, `.vs`, `.idea`, `bin`, `obj`, `node_modules`, `packages`, or `TestResults`), it still
+performs the directory-entry reparse and depth checks but does not create the directory in the
+staged repository, recurse into it, copy or hash its contents, or charge its descendants against
+file, byte, or entry limits. `LargeAnalyzerExcludedDirectoryTreeIsAbsentFromStagedRepository` and
+`AnalyzerExcludedContentsDoNotConsumeFileOrByteLimits` exercise this rule. The resulting staged
+manifest and snapshot identity match the scanner's exclusion behavior, as verified by
+`StagedSnapshotIdentityMatchesTheScannerOutputWhenExclusionsExist`.
+
 **PROVEN:** before accepting an envelope, the host recaptures the entire staged repository tree and
 compares its path/kind/length/hash fingerprint with the state captured during staging.
-`WorkerMutationOfTheStagedRepositoryRejectsOtherwiseValidOutput` adds an excluded
+`WorkerCreatedAnalyzerExcludedTreeRejectsOtherwiseValidOutput` adds an excluded
 `obj/project.assets.json` after analysis and proves that even a change outside the analyzer-visible
 manifest rejects the output. The graph's snapshot ID must also equal the snapshot ID derived by the
 trusted staging pass; the `wrong-snapshot` case of
@@ -208,7 +221,11 @@ configuration. The result therefore declares
 finds a unique symbol in that synthetic scope. The trusted validator rejects any synthetic-source
 binding forged as `Exact`. The analyzer obtains `SemanticModel` instances for
 declarations, base/interface types, attributes, invocations, and member access. Before parsing, it
-revalidates each selected manifest source path, length, and SHA-256 hash. Missing types remain
+opens each selected manifest source as a seekable stream, checks its length before allocation,
+allocates and reads at most the captured manifest length in bounded chunks, computes SHA-256
+incrementally, and rechecks the open handle's position and length after the exact read. Shorter,
+larger, same-length-but-changed, or concurrently grown content is rejected before decoding and
+parsing; cancellation remains observable during the read. Missing types remain
 explicit diagnostics or unresolved/partial bindings instead of triggering repository dependency
 resolution. No compilation is emitted.
 
@@ -218,6 +235,13 @@ The semantic tests provide the following direct evidence:
 - `Metadata_inputs_are_fixed_tool_owned_reference_identities_and_repository_build_is_inert`;
 - `Repository_wide_synthetic_bindings_are_explicitly_partial`;
 - `Only_manifest_sources_with_their_captured_hash_are_analyzed`;
+- `Source_larger_than_manifest_expectation_is_rejected_as_a_length_mismatch`;
+- `Source_shorter_than_manifest_expectation_is_rejected_as_a_length_mismatch`;
+- `Same_length_source_change_is_rejected_as_a_hash_mismatch`;
+- `Obvious_length_drift_is_rejected_without_consuming_source_bytes`;
+- `Growth_during_read_is_rejected_without_consuming_beyond_the_captured_bound`;
+- `Cancellation_during_bounded_source_read_is_propagated`;
+- `Valid_manifest_source_still_analyzes_after_bounded_verification`;
 - `Pre_cancelled_analysis_stops_before_source_or_compiler_work`;
 - `Strict_json_round_trip_is_deterministic_camel_case_and_path_free`;
 - `Validator_rejects_forged_reference_descriptors_and_resolved_assemblies`;
@@ -283,7 +307,7 @@ and measured workload behavior—not on the existence of the child-process proto
 | Hosted isolation | **NOT PROVEN:** the prototype is not the final hostile-workload boundary. |
 | Worker identity | **NOT PROVEN:** environment minimization is implemented; a non-admin/restricted/disposable OS identity is not. |
 | Network | **NOT PROVEN:** no OS-enforced egress denial or no-egress test exists. |
-| Filesystem | **FEASIBLE WITH CONSTRAINTS:** bounded staging, initial reparse rejection, job uniqueness, post-run staged-repository comparison, bounded iterative cleanup, and Windows no-follow/single-link result-handle validation work; atomic/race-safe directory traversal, a cancellable result open, general device handling, ACL confinement, encrypted scratch storage, secure disposal, and crash scavenging remain. |
+| Filesystem | **FEASIBLE WITH CONSTRAINTS:** bounded staging, initial reparse rejection, omission of source analyzer-excluded trees without traversing their contents, job uniqueness, exhaustive post-run staged-repository comparison (including worker-created excluded names), bounded iterative cleanup, and Windows no-follow/single-link result-handle validation work; atomic/race-safe directory traversal, a cancellable result open, general device handling, ACL confinement, encrypted scratch storage, secure disposal, and crash scavenging remain. |
 | Resource governance | **FEASIBLE WITH CONSTRAINTS:** file/entry/depth/byte/output/result-file and worker-acceptance deadline limits exist; hard memory/allocation bounds for result decoding/validation, CPU, process, handle, complete disk quotas, and independent synchronous trusted-postprocessing preemption remain. |
 | Result trust | **FEASIBLE WITH CONSTRAINTS:** deterministic integrity/structure gates exist; authenticated transport, artifact signing/attestation, durable replay protection, and schema migration remain. |
 | Legacy symbol enrichment | **FEASIBLE WITH CONSTRAINTS:** the exact net472 catalog and `SemanticModel` work over one flattened manifest-source compilation with declared `Partial` resolution and no repository build execution; project-faithful compilation, supported framework profiles, and projection into evidence remain open. |
@@ -318,9 +342,10 @@ measured.
 
 | Evidence source | What it supports |
 |---|---|
-| [`AnalyzerProcessHostTests`](../tests/DomainLens.Analyzer.Tests/AnalyzerProcessHostTests.cs) | Process separation, crash/timeout/cancellation, `WideDirectoryIsRejectedBeforeUnboundedMaterializationOrWorkerStart`, file/entry/depth limits, snapshot binding, post-run staged-repository-tree verification, Windows result-junction and hard-link rejection, environment stripping, strict result gates, output limits, distinct workspaces, bounded cleanup, and still-running-parent tree termination. |
+| [`AnalyzerProcessHostTests`](../tests/DomainLens.Analyzer.Tests/AnalyzerProcessHostTests.cs) | Process separation, crash/timeout/cancellation, `WideDirectoryIsRejectedBeforeUnboundedMaterializationOrWorkerStart`, file/entry/depth limits, initial exclusion-tree omission and limit behavior, scanner/staging snapshot parity, snapshot binding, post-run staged-repository-tree verification including worker-created excluded names, Windows result-junction and hard-link rejection, environment stripping, strict result gates, output limits, distinct workspaces, bounded cleanup, and still-running-parent tree termination. |
+| [`AnalyzerProtocolTests`](../tests/DomainLens.Analyzer.Tests/AnalyzerProtocolTests.cs) | Strict job/result wire round trips and rejection behavior, plus the neutral protocol assembly's lack of DomainLens project dependencies. |
 | [`HostileRepositoryEndToEndTests`](../tests/DomainLens.Analyzer.Tests/HostileRepositoryEndToEndTests.cs) | Real-worker proof that repository build/compiler payloads remain inert, repository payload metadata is excluded from the trusted catalog and resolved assemblies, and the worker's loaded-assembly assertion passes. |
-| [`LegacySemanticAnalyzerTests`](../tests/DomainLens.Semantics.Tests/LegacySemanticAnalyzerTests.cs) | Exact net472 catalog, flattened manifest-source/partial compilation semantics, compiler binding, manifest/source integrity, strict semantic JSON, cancellation, and semantic-result validation. |
+| [`LegacySemanticAnalyzerTests`](../tests/DomainLens.Semantics.Tests/LegacySemanticAnalyzerTests.cs) | Exact net472 catalog, flattened manifest-source/partial compilation semantics, compiler binding, bounded seekable source reads with exact pre/post length and incremental-hash verification, manifest/source integrity, strict semantic JSON, cancellation, and semantic-result validation. |
 | [`ScannerAcceptanceTests`](../tests/DomainLens.Scanner.Tests/ScannerAcceptanceTests.cs) | Declarative project reading, explicit partial coverage for unevaluated build configuration, and inert repository build targets. |
 | [Runtime Architecture](architecture/03-runtime-architecture.md) | Product runtime boundary and lifecycle requirements. |
 | [Security Architecture](architecture/09-security-architecture.md) | Threat model and defense-in-depth requirements. |

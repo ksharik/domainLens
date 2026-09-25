@@ -37,7 +37,7 @@ internal static class StagedWorkspace
 
         Directory.CreateDirectory(destinationRoot);
         var pending = new Stack<PendingDirectory>();
-        pending.Push(new PendingDirectory(sourceRoot, destinationRoot, 0, true));
+        pending.Push(new PendingDirectory(sourceRoot, destinationRoot, 0));
 
         var integrityEntries = new List<StagedIntegrityEntry>();
         var analysisManifest = new List<ManifestEntry>();
@@ -72,15 +72,18 @@ internal static class StagedWorkspace
 
                 if ((attributes & FileAttributes.Directory) != 0)
                 {
+                    if (AnalyzerExcludedDirectoryNames.Contains(entry.Name))
+                    {
+                        continue;
+                    }
+
                     Directory.CreateDirectory(destination);
                     integrityEntries.Add(new StagedIntegrityEntry(
                         relativePath, StagedEntryKind.Directory, 0, string.Empty));
                     pending.Push(new PendingDirectory(
                         entry.FullName,
                         destination,
-                        relativeDepth,
-                        current.AnalyzerVisible &&
-                        !AnalyzerExcludedDirectoryNames.Contains(entry.Name)));
+                        relativeDepth));
                     continue;
                 }
 
@@ -145,10 +148,7 @@ internal static class StagedWorkspace
                 var contentHash = Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
                 integrityEntries.Add(new StagedIntegrityEntry(
                     relativePath, StagedEntryKind.File, copiedFileBytes, contentHash));
-                if (current.AnalyzerVisible)
-                {
-                    analysisManifest.Add(new ManifestEntry(relativePath, contentHash, copiedFileBytes));
-                }
+                analysisManifest.Add(new ManifestEntry(relativePath, contentHash, copiedFileBytes));
             }
         }
 
@@ -496,8 +496,7 @@ internal static class StagedWorkspace
     private sealed record PendingDirectory(
         string Source,
         string Destination,
-        int RelativeDepth,
-        bool AnalyzerVisible);
+        int RelativeDepth);
 
     private sealed record CaptureDirectory(string Path, int RelativeDepth, bool AnalyzerVisible);
 

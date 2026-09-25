@@ -19,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\DomainLens.Analyzer.Protocol\DomainLens.Analyzer.Protocol.csproj" />
     <ProjectReference Include="..\..\src\DomainLens.Analyzer.Host\DomainLens.Analyzer.Host.csproj" />
     <ProjectReference Include="..\..\src\DomainLens.Analyzer.Worker\DomainLens.Analyzer.Worker.csproj"
                       ReferenceOutputAssembly="false" />
@@ -26,6 +27,10 @@
                       ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\DomainLens.RepositoryPayload\DomainLens.RepositoryPayload.csproj"
                       ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="DomainLens.Analyzer.Protocol" />
   </ItemGroup>
 
 </Project>

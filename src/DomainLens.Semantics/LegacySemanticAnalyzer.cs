@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text;
 using DomainLens.Core;
 using Microsoft.CodeAnalysis;
@@ -14,6 +15,8 @@ namespace DomainLens.Semantics;
 /// </summary>
 public sealed class LegacySemanticAnalyzer
 {
+    private const int SourceReadChunkSize = 64 * 1024;
+
     private static readonly SymbolDisplayFormat SymbolFormat =
         SymbolDisplayFormat.CSharpErrorMessageFormat
             .WithMiscellaneousOptions(
@@ -134,9 +137,21 @@ public sealed class LegacySemanticAnalyzer
 
             try
             {
-                var bytes = await File.ReadAllBytesAsync(fullPath, cancellationToken).ConfigureAwait(false);
-                cancellationToken.ThrowIfCancellationRequested();
-                if (bytes.LongLength != entry.Length)
+                await using var sourceStream = new FileStream(
+                    fullPath,
+                    new FileStreamOptions
+                    {
+                        Access = FileAccess.Read,
+                        Mode = FileMode.Open,
+                        Share = FileShare.Read,
+                        Options = FileOptions.Asynchronous | FileOptions.SequentialScan,
+                        // Disable FileStream read-ahead; the bounded reader owns the only
+                        // source-content buffer and controls every requested byte count.
+                        BufferSize = 1
+                    });
+                var readResult = await ReadBoundedSourceAsync(sourceStream, entry, cancellationToken)
+                    .ConfigureAwait(false);
+                if (readResult.Status == ManifestSourceReadStatus.LengthMismatch)
                 {
                     diagnostics.Add(CreateDiagnostic(
                         SemanticDiagnosticCode.ManifestLengthMismatch,
@@ -146,8 +161,7 @@ public sealed class LegacySemanticAnalyzer
                     continue;
                 }
 
-                var contentHash = CanonicalIdentity.Sha256Hex(bytes);
-                if (!string.Equals(contentHash, entry.ContentHash, StringComparison.OrdinalIgnoreCase))
+                if (readResult.Status == ManifestSourceReadStatus.HashMismatch)
                 {
                     diagnostics.Add(CreateDiagnostic(
                         SemanticDiagnosticCode.ManifestHashMismatch,
@@ -157,6 +171,7 @@ public sealed class LegacySemanticAnalyzer
                     continue;
                 }
 
+                var bytes = readResult.Bytes!;
                 var source = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true)
                     .GetString(bytes);
                 var tree = CSharpSyntaxTree.ParseText(
@@ -193,6 +208,67 @@ public sealed class LegacySemanticAnalyzer
         }
 
         return syntaxTrees;
+    }
+
+    internal static async Task<ManifestSourceReadResult> ReadBoundedSourceAsync(
+        Stream source,
+        ManifestEntry entry,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(entry);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (entry.Length < 0 || entry.Length > Array.MaxLength)
+        {
+            return ManifestSourceReadResult.LengthMismatch;
+        }
+
+        if (!source.CanSeek)
+        {
+            throw new NotSupportedException("Manifest source verification requires a seekable stream.");
+        }
+
+        var initialPosition = source.Position;
+        var expectedEndPosition = checked(initialPosition + entry.Length);
+        if (source.Length != expectedEndPosition)
+        {
+            return ManifestSourceReadResult.LengthMismatch;
+        }
+
+        var expectedLength = checked((int)entry.Length);
+        var bytes = GC.AllocateUninitializedArray<byte>(expectedLength);
+        var totalRead = 0;
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+
+        while (totalRead < expectedLength)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var requestedCount = Math.Min(SourceReadChunkSize, expectedLength - totalRead);
+            var count = await source
+                .ReadAsync(bytes.AsMemory(totalRead, requestedCount), cancellationToken)
+                .ConfigureAwait(false);
+            if (count == 0)
+            {
+                return ManifestSourceReadResult.LengthMismatch;
+            }
+
+            hash.AppendData(bytes.AsSpan(totalRead, count));
+            totalRead += count;
+        }
+
+        // Recheck the open handle after the exact bounded read. This detects growth during
+        // the read without requesting or consuming any byte past the captured manifest length.
+        if (source.Position != expectedEndPosition || source.Length != expectedEndPosition)
+        {
+            return ManifestSourceReadResult.LengthMismatch;
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        var contentHash = Convert.ToHexString(hash.GetHashAndReset());
+        return string.Equals(contentHash, entry.ContentHash, StringComparison.OrdinalIgnoreCase)
+            ? new ManifestSourceReadResult(ManifestSourceReadStatus.Success, bytes)
+            : ManifestSourceReadResult.HashMismatch;
     }
 
     private static IReadOnlyList<TrustedReferenceCatalogEntry> LoadTrustedReferences(
@@ -595,5 +671,22 @@ public sealed class LegacySemanticAnalyzer
 
     private static StringComparer FileSystemPathComparer { get; } =
         OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+}
 
+internal enum ManifestSourceReadStatus
+{
+    Success,
+    LengthMismatch,
+    HashMismatch
+}
+
+internal sealed record ManifestSourceReadResult(
+    ManifestSourceReadStatus Status,
+    byte[]? Bytes)
+{
+    public static ManifestSourceReadResult LengthMismatch { get; } =
+        new(ManifestSourceReadStatus.LengthMismatch, null);
+
+    public static ManifestSourceReadResult HashMismatch { get; } =
+        new(ManifestSourceReadStatus.HashMismatch, null);
 }

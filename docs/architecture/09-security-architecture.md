@@ -64,6 +64,9 @@ Milestone 0 adds a separate child worker, bounded workspace/result protocol,
 deadline/cancellation, and cleanup under that same OS identity. It proves process
 separation but not the planned OS containment or control-plane boundaries. See the
 [Milestone 0 Feasibility Report](../12-milestone-0-deployment-security-feasibility.md).
+The current Host and Worker depend on a neutral, dependency-light
+`DomainLens.Analyzer.Protocol` wire-contract project (`Host -> Protocol <- Worker`); the Worker
+does not depend on the trusted Host implementation.
 
 ## Assets to protect
 
@@ -178,11 +181,15 @@ entries create partial-coverage diagnostics where the scanner can continue.
 Crossing a fatal capture/traversal/aggregate limit produces a failure document.
 
 The M0 staging host adds separate total-filesystem-entry and relative-depth
-bounds before a worker starts. It derives the expected analysis snapshot ID
-from the staged analyzer-visible manifest, then recaptures the full staged repository tree
-after worker exit and rejects any path/kind/length/hash change before accepting
-output. Named tests cover empty directories counting toward the entry bound,
-relative depth, wrong snapshot identity, and an added excluded
+bounds before a worker starts. When initial staging encounters an analyzer-excluded
+directory, it still inspects that directory entry for reparse and depth violations but omits the
+directory itself and does not recurse, copy, hash, or charge its descendants against staging
+entry/file/byte limits. It derives the expected analysis snapshot ID from only the copied manifest,
+which matches the scanner's exclusion behavior. After worker exit, it deliberately recaptures the
+entire staged repository without pruning excluded names and rejects any path/kind/length/hash
+change before accepting output. Named tests cover large excluded source trees remaining absent,
+excluded contents not consuming limits, scanner/staging snapshot parity, empty directories counting
+toward the entry bound, relative depth, wrong snapshot identity, and a worker-created excluded
 `obj/project.assets.json`. Cleanup uses a bounded iterative traversal and is
 exercised by cleanup assertions across normal and failure outcomes; cleanup-
 failure injection and adversarial cleanup races are not proven.
@@ -197,6 +204,10 @@ for privacy and capacity policy in Product V1.
 
 - Each manifest entry carries the SHA-256 hash and actual byte count of its
   bounded read.
+- The semantic analyzer opens selected manifest C# sources as seekable streams, prechecks their
+  exact captured length, allocates and reads at most that length in bounded chunks while hashing
+  incrementally, and postchecks the handle before decoding. Early EOF, growth, length/hash drift,
+  and cancellation prevent that source from reaching parsing.
 - Snapshot, evidence, node, and edge identities are content-derived and are
   recomputed by graph validation.
 - Canonical JSON carries a whole-document SHA-256 hash that excludes only its
@@ -230,7 +241,9 @@ The current security-focused suites include checks that:
   cancellation remain typed host outcomes; delayed output is rejected; and a
   test descendant terminates when its still-running worker parent is tree-killed;
 - total staging entries (including empty directories), relative depth, expected
-  snapshot identity, and post-run full staged-repository-tree integrity are gated;
+  snapshot identity, initial omission of analyzer-excluded source trees and their contents from
+  staging limits, scanner/staging snapshot parity, and post-run exhaustive staged-repository-tree
+  integrity including worker-created excluded names are gated;
 - a named caller environment secret and `PATH` are not inherited, while worker
   CWD/`TEMP`/`TMP` remain job-scoped;
 - malformed, mismatched, oversized, hash-invalid, graph-invalid, and
@@ -240,7 +253,10 @@ The current security-focused suites include checks that:
   repository payload DLL remains in the manifest but is absent from the exact
   trusted metadata-reference catalog and resolved-assembly observations; and
 - the real worker's post-analysis `AppDomain` assertion finds no currently
-  loaded managed assembly whose location is under the staged repository.
+  loaded managed assembly whose location is under the staged repository; and
+- semantic source reads reject content that is larger, shorter, grown during the read, or changed
+  at the same length; do not consume beyond the captured bound; propagate mid-read cancellation;
+  and still accept a valid manifest source.
 
 The test suite does not constitute a complete hostile-workload containment or malware
 assessment. It has no portable Unix FIFO/socket test, OS-enforced no-egress test, restricted-
@@ -452,7 +468,7 @@ DECISIONS.
 | No repository build execution | Implemented structurally | Analyzer contract plus worker policy |
 | Evidence identity/hash/graph validation | Implemented in core | Evidence Kernel and coordinator |
 | Child-process crash/deadline/cancellation/result gate | **PROVEN for M0 test topology**; deadline governs worker/result acceptance, not independent trusted-postprocessing preemption; same OS identity | Worker host/platform and coordinator |
-| Exact-catalog net472 `SemanticModel` enrichment | **FEASIBLE WITH CONSTRAINTS**; flattened manifest-source compilation, `Partial` resolution, no repository build/evaluation | Analyzer profile, Evidence Kernel and worker |
+| Exact-catalog net472 `SemanticModel` enrichment | **FEASIBLE WITH CONSTRAINTS**; bounded exact-length/hash-verified source reads, flattened manifest-source compilation, `Partial` resolution, no repository build/evaluation | Analyzer profile, Evidence Kernel and worker |
 | Environment minimization | Named-secret non-inheritance and job-scoped temp paths proven; not identity isolation | Worker host/platform |
 | Public URL and SSRF validation | Not applicable | Repository intake |
 | Git acquisition safety | Not implemented | Repository intake and worker bootstrap |

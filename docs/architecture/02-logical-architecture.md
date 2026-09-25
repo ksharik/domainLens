@@ -9,8 +9,8 @@ resource.
 
 - **CURRENT — Milestones 0 and 1:** `DomainLens.Core`, `DomainLens.Scanner`, and
   `DomainLens.Cli` implement Repository Structure Scanner 0.1. The M0 feasibility projects add a
-  local child-process host/worker and narrow net472 semantic enrichment, without claiming a
-  production containment boundary.
+  local child-process host/worker, a neutral shared wire-protocol contract, and narrow net472
+  semantic enrichment, without claiming a production containment boundary.
 - **PLANNED — Product V1:** the end-to-end web/API, pipeline, analyzer-worker, reasoning, review, and persistence capabilities described below.
 - **FUTURE:** decomposition/modernization capabilities, additional client channels, richer orchestration, generalized automatic technology discovery and generated Analysis Plans, and analyzer families beyond legacy .NET/WCF.
 
@@ -120,9 +120,10 @@ Analysis Plan.
 |---|---|---|
 | `DomainLens.Core` | Language-neutral Evidence Graph records, canonical identities, deterministic JSON normalization/hashing, and graph/provenance validation. | Forms the first implemented part of the planned Evidence Kernel. It contains no Finding Graph or Domain Knowledge Model. |
 | `DomainLens.Scanner` | Safe local inventory, content manifest and snapshot identity, solution/project parsing without MSBuild evaluation, Roslyn syntax extraction, declared relationships, diagnostics, and status. | Supplies the first structural analyzer implementation and is invoked by the M0 child worker; the CLI can still invoke it in process. |
-| `DomainLens.Semantics` | Flattens manifest-verified repository C# into one synthetic compilation against the exact tool-owned net472 catalog, declares `Partial` resolution, and provides deterministic path-free result serialization and validation. | A feasibility result separate from the Evidence Graph; it does not reproduce effective project configuration, evaluate MSBuild, restore/build/emit the repository, or establish full behavioral evidence. |
-| `DomainLens.Analyzer.Host` | Bounded staging, allowlisted child launch, worker-lifetime/result-acceptance deadline and cancellation, process-tree termination for a running worker, strict result correlation/validation, and typed cleanup. | Demonstrates the required process protocol locally. It does not provide least-privileged identity, detached-descendant containment, network denial, trusted-postprocessing preemption, or production resource containment. |
-| `DomainLens.Analyzer.Worker` | Runs the scanner and semantic feasibility analyzer inside the child and atomically emits a versioned result envelope. | A trusted executable prototype, not a selected Azure worker service or completed Product V1 analyzer profile. |
+| `DomainLens.Semantics` | Verifies each selected source through a bounded seekable read against its captured length and SHA-256 before decoding, then flattens manifest-verified repository C# into one synthetic compilation against the exact tool-owned net472 catalog, declares `Partial` resolution, and provides deterministic path-free result serialization and validation. | A feasibility result separate from the Evidence Graph; it does not reproduce effective project configuration, evaluate MSBuild, restore/build/emit the repository, or establish full behavioral evidence. |
+| `DomainLens.Analyzer.Protocol` | Defines the dependency-light, versioned job/result wire contracts and strict serialization used across the process boundary. | A neutral shared contract with no dependency on the Host or Worker; it does not own process, staging, validation, or cleanup behavior. |
+| `DomainLens.Analyzer.Host` | Bounded staging, allowlisted child launch, protocol consumption, worker-lifetime/result-acceptance deadline and cancellation, process-tree termination for a running worker, strict result correlation/validation, and typed cleanup. | Demonstrates the required process boundary locally. It does not provide least-privileged identity, detached-descendant containment, network denial, trusted-postprocessing preemption, or production resource containment. |
+| `DomainLens.Analyzer.Worker` | Consumes the neutral protocol, runs the scanner and semantic feasibility analyzer inside the child, and atomically emits a versioned result envelope. | It has no project reference to `DomainLens.Analyzer.Host`; it is a trusted executable prototype, not a selected Azure worker service or completed Product V1 analyzer profile. |
 | `DomainLens.Cli` | Local `scan` and artifact-only `inspect` commands, canonical JSON output, exit-code mapping, and evidence display. | A Milestone 1 host and diagnostic surface, not the planned Web UI or Product V1 API. |
 | `DomainLens.Scanner.Tests` | Fixture-backed acceptance, security, determinism, identity, provenance, path-hardening, CLI, and graph-integrity tests. | Establishes current contracts; it is not a runtime component. |
 
@@ -166,12 +167,13 @@ negotiation must be approved before they appear in a runtime flow.
 1. Client components depend on application contracts, not analyzer or persistence implementations.
 2. The Pipeline Coordinator invokes fixed application capabilities; it does not contain analyzer logic or model prompts.
 3. Analyzer implementations depend on the normalized Evidence Kernel contract. The language-neutral core does not depend on WCF, Roslyn, Java, Spring, database, or messaging analyzers.
-4. Only deterministic analyzers can contribute Observed evidence, and every contribution must carry snapshot-scoped provenance and resolution.
-5. The Context Builder reads validated evidence, finding state, and specific Human Context revisions through bounded retrieval operations. It preserves their distinct types and does not expose an unrestricted checkout or general-purpose filesystem tool to a model.
-6. The Reasoning Runtime can produce candidate Inferred or Proposed findings only. It tags recovered/as-is meaning separately from proposed DDD design, and the Finding Validator owns acceptance into the Finding Graph.
-7. The Domain Knowledge Model is derived from validated, revisioned findings and retains semantic view, classification, review state, and links back through findings to evidence, Human Context revisions where used, and the snapshot. Acceptance never changes `Proposed` to `Inferred` or `Observed`, and superseding Human Context does not rewrite historical findings.
-8. Decomposition Analysis consumes a versioned Domain Knowledge Model in a later stage. Proposed DDD Design is not Decomposition Analysis, and neither stage annotates or modifies deterministic source evidence.
-9. Azure, model, Git, persistence, and telemetry products sit behind adapters so application rules do not depend directly on vendor SDKs.
+4. The current process dependency is `DomainLens.Analyzer.Host -> DomainLens.Analyzer.Protocol <- DomainLens.Analyzer.Worker`. The Worker must not depend on the Host; host-only lifecycle and trust-gate types remain in the Host.
+5. Only deterministic analyzers can contribute Observed evidence, and every contribution must carry snapshot-scoped provenance and resolution.
+6. The Context Builder reads validated evidence, finding state, and specific Human Context revisions through bounded retrieval operations. It preserves their distinct types and does not expose an unrestricted checkout or general-purpose filesystem tool to a model.
+7. The Reasoning Runtime can produce candidate Inferred or Proposed findings only. It tags recovered/as-is meaning separately from proposed DDD design, and the Finding Validator owns acceptance into the Finding Graph.
+8. The Domain Knowledge Model is derived from validated, revisioned findings and retains semantic view, classification, review state, and links back through findings to evidence, Human Context revisions where used, and the snapshot. Acceptance never changes `Proposed` to `Inferred` or `Observed`, and superseding Human Context does not rewrite historical findings.
+9. Decomposition Analysis consumes a versioned Domain Knowledge Model in a later stage. Proposed DDD Design is not Decomposition Analysis, and neither stage annotates or modifies deterministic source evidence.
+10. Azure, model, Git, persistence, and telemetry products sit behind adapters so application rules do not depend directly on vendor SDKs.
 
 ## Control flow and data flow
 
