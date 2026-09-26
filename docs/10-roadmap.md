@@ -12,8 +12,9 @@ V1 must work when the analyzed source uses no DDD vocabulary or structure. The c
 
 0. Deployment/security/analyzer-isolation feasibility spike (prerequisite; executable spike
    complete, production containment and deployment decisions remain open).
-1. Repository Structure Scanner 0.1.
-2. WCF discovery.
+1. Repository Structure Scanner 0.1 (complete for the documented structural rule set).
+2. Classic WCF discovery (complete for the bounded deterministic rule set in the Milestone 2
+   acceptance contract; effective runtime WCF state and business interpretation are excluded).
 3. Relationship / persistence / behavioral evidence.
 4. Evidence persistence/explorer.
 5. Context builder and structured reasoning runtime.
@@ -30,6 +31,19 @@ reference catalog. It does not mark the worker production-ready, prove network d
 least-privileged OS identity, or select an Azure service. Repository build/restore remains
 prohibited, and repository-controlled MSBuild evaluation is rejected as the default V1 analysis
 path.
+
+Milestone 2 is implemented by the concrete `DomainLens.Analyzer.Wcf` module in the isolated Worker
+path. It projects supported WCF source attributes, implementation relationships, `.svc`
+declarations, allowlisted `system.serviceModel` configuration, and direct programmatic
+host/client patterns into the canonical Evidence Graph. Resolution remains conservative under the
+flattened net472 semantic profile, and unsupported, malformed, ambiguous, or unavailable forms
+remain explicit diagnostics or unresolved relationships. XDT controls within `system.serviceModel`
+are detected as bounded inert metadata; transforms are never applied and declarations from a
+transformed section are not promoted as base configuration. The exact supported subset, security
+boundary, and limitations are recorded in the
+[Milestone 2 Classic WCF Discovery contract](13-milestone-2-wcf-discovery.md). Completion does not
+mean every WCF usage or deployed configuration is understood, and it does not implement Milestone
+3 behavior or any business/domain/DDD interpretation.
 
 Milestone 3 clarifies the already approved V1 evidence requirement; it is not a new milestone or an
 expansion to generalized analyzer discovery. Its deterministic scope needs to address supported

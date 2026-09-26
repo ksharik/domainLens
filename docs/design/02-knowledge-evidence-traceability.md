@@ -13,18 +13,30 @@ The governing separation remains:
 
 Scanner 0.1 currently establishes repository, solution, project, declaration, signature-dependency,
 source-span, and provenance facts. It does not inspect method bodies, construct a call graph, analyze
-WCF semantics, establish persistence behavior, or produce semantic findings. The additional
-deterministic capabilities named below are **PLANNED V1 requirements or identified gaps**, not
-current behavior.
+WCF semantics, establish persistence behavior, or produce semantic findings. Milestone 2 now adds
+bounded deterministic WCF evidence through the isolated Worker path, but it also does not inspect
+general method behavior or produce semantic findings. The remaining deterministic capabilities
+named below are **PLANNED V1 requirements or identified gaps**, not current behavior.
+
+Within the current WCF slice, trusted framework metadata identity is separate from the quality of
+an observation about repository source. Source-backed semantic evidence can be `Exact` only for
+exactly one deterministically selected `net472`/`v4.7.2` project context; `DL4001` and `Partial` or
+weaker quality apply otherwise. Independent declarative `.svc`/configuration evidence is not
+profile-downgraded. Strict text decoding and a collision-resistant 1,024-UTF-16-code-unit
+persistence representation also keep invalid or oversized repository-controlled values from being
+silently accepted as complete evidence.
 
 Milestone 0 separately proves that every manifest-listed C# source can be flattened into one
 synthetic Roslyn compilation and queried with `SemanticModel` against the exact tool-owned net472
 reference catalog without evaluating, restoring, building, or emitting the repository. The result
 declares repository-manifest compilation scope and `Partial` resolution because effective project
-configuration is not reproduced. Its validated `LegacySemanticAnalysisResult` remains a
-feasibility artifact and is not yet projected into Evidence Graph IDs; it therefore does not by
-itself satisfy any DKM evidence recipe below. See the
-[Milestone 0 Feasibility Report](../12-milestone-0-deployment-security-feasibility.md).
+configuration is not reproduced. Its validated `LegacySemanticAnalysisResult` remains a separate
+feasibility artifact rather than a general-purpose Evidence Graph projection. Milestone 2 reuses
+the same manifest-verified in-process compilation context and projects only its documented WCF
+observations into Evidence Graph IDs. Neither artifact by itself satisfies a DKM evidence recipe
+below. See the
+[Milestone 0 Feasibility Report](../12-milestone-0-deployment-security-feasibility.md) and the
+[Milestone 2 acceptance contract](../13-milestone-2-wcf-discovery.md).
 
 This traceability follows the canonical information flow:
 
@@ -60,6 +72,7 @@ processes or select an implementation technology.
 |---|---|
 | **Current — M0 feasibility** | A tested mechanism exists, but production containment, Evidence Graph projection, supported-profile scope, or downstream acceptance criteria remain incomplete. It is not product support by itself. |
 | **Current — M1 slice** | Scanner 0.1 already supplies only the stated structural evidence. It does not produce the DKM output. |
+| **Current — M2 slice** | The isolated Worker supplies only the bounded classic WCF declarations and relationships defined by the M2 contract. They are implementation evidence, not DKM outputs or behavioral/domain conclusions. |
 | **V1 — path identified** | The approved roadmap names a capability that can supply a substantial part of the required evidence, subject to the artifact-coverage contract and implementation validation. |
 | **V1 — evidence gap** | The DKM output is an approved V1 requirement, but the roadmap still lacks explicit deterministic extraction acceptance criteria sufficient to support it. This is not a deferral to Future. |
 | **V1 — human context likely** | Repository evidence can support the output, but source alone commonly cannot establish the business meaning; limitations, alternatives, and clarification must remain visible. |
@@ -80,6 +93,12 @@ user-facing presentation until a versioned calibration method, an applicable exp
 corpus, a completed calibration evaluation, and an approved product decision to expose it exist.
 Raw model self-confidence must never be presented as product Confidence.
 
+For M2, `Exact` tool-owned net472 attribute/type identity does not automatically create an `Exact`
+source observation. The source must also have one deterministic compatible project context, and
+source-to-source relationships remain `Partial`. Same-document declarative relationships can be
+`Exact` under their own rules without asserting that configuration is deployed or that its related
+C# project is net472-compatible.
+
 References below to a Milestone 3 documented home mean that the approved broader Milestone 3 scope
 now names the relevant evidence family. They do not imply that its artifact, extraction,
 resolution, coverage, or acceptance contracts have been defined, and they do not request another
@@ -93,13 +112,25 @@ across projects that an effective build might not connect, so those source bindi
 `Partial`. The slice does not establish call ordering, control/data flow, mutation, transaction
 scope, effective WCF configuration, runtime dispatch, invariants, ownership, or strategic
 boundaries. Repository dependencies absent from the exact trusted reference catalog remain missing
-or unresolved. Consequently, the matrices below retain their V1 evidence gaps even where safe
-symbol binding is now **FEASIBLE WITH CONSTRAINTS**.
+or unresolved. Milestone 2 uses that constrained binding only to identify approved WCF framework
+symbols and conservatively relate captured source declarations. It does not remove any behavioral
+or business-meaning gaps. Consequently, the matrices below retain their V1 evidence gaps even
+where safe symbol binding is **FEASIBLE WITH CONSTRAINTS** and bounded WCF projection is current.
 
 Repository-controlled MSBuild evaluation is **REJECTED** as the V1 default way to close those
-gaps. Building or restoring analyzed input is **PROHIBITED**. Future Evidence Graph projection must
-retain manifest provenance, resolution quality, diagnostics, and the trusted reference-profile
-identity rather than presenting a compiler guess as complete evidence.
+gaps. Building or restoring analyzed input is **PROHIBITED**. The current WCF Evidence Graph
+projection retains manifest provenance, resolution quality, diagnostics, and the trusted
+reference-profile boundary rather than presenting a compiler guess as complete evidence. Any
+later non-WCF projection must preserve the same rule.
+
+M2 also compares full manifest-bounded WCF literals before persistence, then stores at most 1,024
+UTF-16 code units. An oversized representation includes `domainlens:truncated=true`,
+`originalLengthUtf16`, and `sha256Utf16` over the exact big-endian UTF-16 code-unit sequence and
+emits `DL4504`; it is evidence of an abbreviated value, not the full source text. `.svc` and
+configuration parsing accepts only strict UTF-8 with/without BOM and BOM-marked UTF-16 LE/BE.
+Invalid or unsupported bytes and incompatible XML declarations yield typed diagnostics and no WCF
+evidence from that artifact. These controls do not turn diagnostics, hashes, or coverage state into
+semantic findings.
 
 ### Human-provided domain context
 
@@ -174,10 +205,10 @@ Inferred. A model must retain competing meanings instead of forcing a single glo
 | Knowledge output | Minimum evidence needed | Deterministic source/analyzer or stage | Semantic reasoning stage | Horizon and sufficiency |
 |---|---|---|---|---|
 | Application Service | Entry-point orchestration; calls to domain/persistence/integration services; transaction demarcation; mapping; lack or presence of domain rules | WCF analyzer (M2); call, behavior, persistence, transaction, and side-effect extraction | Domain discovery / DDD interpretation → Recovered (`Inferred`) | **V1 — evidence gap.** `*Service` and WCF implementation names do not distinguish application from domain services. |
-| APIs / Operations | Service/interface declaration; `ServiceContract`, `OperationContract`, `FaultContract`; implementation link; signature; endpoint/binding/hosting configuration; accessibility | WCF source/config/hosting analyzer (M2), with structural provenance from M1 | Exact declarations remain Observed in the Evidence Graph; domain purpose and use-case relation are Recovered (`Inferred`) | **V1 — path identified.** M2 must still cover implementation/config correlation and explicit partial/unresolved cases. |
-| DTOs / Contracts | `DataContract`, `DataMember`, `MessageContract`, message headers/body, serialization attributes, types, versions, operation usage | WCF contract and serialization analyzer (M2); structural/type evidence (M1) | Contract role and domain meaning → Recovered (`Inferred`) | **V1 — path identified.** Generated and external schema sources may remain partial/open. |
+| APIs / Operations | Service/interface declaration; `ServiceContract`, `OperationContract`, `FaultContract`; implementation link; signature; endpoint/binding/hosting configuration; accessibility | WCF source/config/hosting analyzer (M2), with structural provenance from M1 | Deterministic declarations remain Observed in the Evidence Graph at their qualified resolution quality; domain purpose and use-case relation are Recovered (`Inferred`) | **Current — M2 slice.** Source observations are `Exact` only for one deterministic `net472`/`v4.7.2` project; independent declarative evidence follows its own rule. Bounded implementation/config correlation and explicit partial/ambiguous/unresolved cases are implemented; effective runtime state, inaccessible/generated code, and business purpose remain gaps. |
+| DTOs / Contracts | `DataContract`, `DataMember`, `MessageContract`, message headers/body, serialization attributes, types, versions, operation usage | WCF contract and serialization analyzer (M2); structural/type evidence (M1) | Contract role and domain meaning → Recovered (`Inferred`) | **Current — M2 slice.** The allowlisted declarations and supported operation-usage links are current; generated/external schemas, runtime serializers, and domain meaning remain partial/open. |
 | Messages / Integration Events | Message shape; producer/consumer; transport/configuration; send/receive site; correlation; delivery, ordering, retry and transaction behavior where visible | WCF message evidence (M2); messaging/call/config/transaction extraction (M3 documented home; detailed extraction and acceptance contracts remain open) | Domain discovery → Recovered (`Inferred`); classification as a Domain Event requires separate support | **V1 — evidence gap; open artifact dependency.** Message contracts alone do not establish business event semantics. |
-| External Systems | Endpoint addresses/types without exposing secrets; client/proxy/channel creation; outbound calls; assembly/service dependencies; request/response or message relationships | WCF clients, `ChannelFactory<T>`, `ClientBase<T>`, endpoint/config and call extraction; dependency analyzer | Domain discovery → Recovered (`Inferred`) | **V1 — partial path plus evidence gap.** Dynamic endpoints, generated proxies, transforms, and third-party assemblies may limit coverage. |
+| External Systems | Endpoint addresses/types without exposing secrets; client/proxy/channel creation; outbound calls; assembly/service dependencies; request/response or message relationships | WCF clients, `ChannelFactory<T>`, `ClientBase<T>`, endpoint/config and call extraction; dependency analyzer | Domain discovery → Recovered (`Inferred`) | **Current — partial M2 path plus evidence gap.** Direct factories/proxies and configured endpoints are observed. XDT controls within `system.serviceModel` are detected without applying them or promoting that section; outbound invocation behavior, dynamic endpoints, absent generated proxies, effective environment selection, transform application, and third-party assemblies remain unavailable or planned. |
 | Synchronous / Asynchronous Dependencies | Invocation or send relationship; waiting/return behavior; callback/task/one-way/message pattern; endpoint/binding; failure/retry behavior | Call and message analyzer; WCF operation/config evidence; control-flow and exception extraction (M3 documented home; detailed extraction and acceptance contracts remain open) | Domain discovery → Recovered (`Inferred`) | **V1 — evidence gap.** Static references do not establish interaction mode. |
 
 ## Security of the analyzed system
@@ -188,7 +219,7 @@ copied into evidence, model context, logs, or results when a safe redacted obser
 
 | Knowledge output | Minimum evidence needed | Deterministic source/analyzer or stage | Semantic reasoning stage | Horizon and sufficiency |
 |---|---|---|---|---|
-| Authentication | WCF binding/transport/message security settings; service credentials; certificate/Windows/custom authentication configuration; authentication middleware/attributes and principal establishment visible in source | WCF configuration/security analyzer (M2 where framework-specific); security-sensitive code/config extraction (M3 documented home; detailed extraction and acceptance contracts remain open) | Domain discovery → Recovered (`Inferred`) | **V1 — evidence gap.** Milestone 3 now provides the security-check home, but the WCF security-semantics and configuration-correlation contracts remain unspecified. Absence in repository is not proof of no authentication. |
+| Authentication | WCF binding/transport/message security settings; service credentials; certificate/Windows/custom authentication configuration; authentication middleware/attributes and principal establishment visible in source | WCF configuration/security analyzer (M2 where framework-specific); security-sensitive code/config extraction (M3 documented home; detailed extraction and acceptance contracts remain open) | Domain discovery → Recovered (`Inferred`) | **V1 — evidence gap.** M2 records only its allowlisted binding security/credential literals and behavior-element presence; it does not establish effective authentication or policy. Milestone 3 provides the security-check home, while framework semantics and code/config correlation remain unspecified. Absence is not proof of no authentication. |
 | Authorization | Role/claim/principal checks; declarative attributes; operation/service authorization configuration; custom authorization managers; denial/fault paths | Security control-flow and framework/config analyzer (M3 documented home; detailed extraction and acceptance contracts remain open) | Domain discovery → Recovered (`Inferred`) | **V1 — evidence gap.** Security checks must be tied to protected operations and bypass paths. |
 | Roles / Permissions | Role/permission declarations and constants; membership checks; operation/resource association; configuration and custom policy usage | Security symbol/config/control-flow extraction | Domain discovery → Recovered (`Inferred`) | **V1 — evidence gap.** A role-name string does not establish an effective permission. |
 | Security Policy | Correlated authentication, authorization, transport protection, sensitive-data handling, enforcement paths, exceptions and configuration | Composite security evidence over WCF/config and method bodies | Domain discovery → Recovered (`Inferred`) with contradictions and coverage limitations | **V1 — evidence gap.** Milestone 3 now explicitly includes security checks and therefore provides the documented V1 home for this evidence. Composite policy correlation and the detailed artifact, extraction, resolution, coverage, and acceptance contracts remain unspecified. |
@@ -205,7 +236,7 @@ copied into evidence, model context, logs, or results when a safe redacted obser
 | Shared Data | Multiple components/services reading or writing the same table/store/file/schema; mappings and connection identities; shared write ownership | Persistence/mapping/config/call extraction and cross-component reconciliation | Domain discovery → Recovered (`Inferred`) and later decomposition input | **V1 — path identified but underspecified; open artifact dependency.** Store-name equality and aliases require conservative resolution. |
 | Dependencies and Coupling | Resolved/unresolved type, project, call, data, message, transaction, configuration and external-service dependencies; fan-in/fan-out as derived measurements | Structural dependencies (M1); WCF (M2); call/persistence/message/security/transaction extraction (M3 documented home; detailed extraction and acceptance contracts remain open) | Domain discovery → Recovered (`Inferred`); decomposition remains a later stage | **V1 — partial current path plus evidence gap.** Structural coupling alone misses behavioral and runtime coupling. |
 | Calls and Side Effects | Caller/callee resolution; reads/writes; external I/O; sends/publishes; logging/audit; mutation; exceptions and order/condition where supported | Interprocedural call, control/data-flow, mutation, persistence, messaging, and external-call extraction (M3 documented home; detailed extraction and acceptance contracts remain open) | Exact supported relationships → Observed; business meaning → Recovered (`Inferred`) | **V1 — evidence gap.** Scanner 0.1 explicitly has no method-body or call-graph analysis. |
-| Configuration-driven behavior | Configuration keys/sections; safe values or redacted presence; transforms; consumers; branch or framework behavior affected; environment-specific ambiguity | XML/config/framework analyzer plus configuration-to-code usage analysis; transforms subject to coverage decision | Domain discovery → Recovered (`Inferred`) | **V1 — evidence gap; open artifact dependency.** Reading `.config` as XML is not enough to establish its behavioral effect. |
+| Configuration-driven behavior | Configuration keys/sections; safe values or redacted presence; transforms; consumers; branch or framework behavior affected; environment-specific ambiguity | XML/config/framework analyzer plus configuration-to-code usage analysis; transforms subject to coverage decision | Domain discovery → Recovered (`Inferred`) | **V1 — evidence gap; open artifact dependency.** M2 detects bounded XDT controls in `system.serviceModel`, retains them as inert diagnostics, and suppresses that section's declaration promotion. It does not apply transforms, choose an environment, or establish behavioral effect. |
 | Scheduled Processes | Timer/scheduler/service/job declarations; triggers and cadence without leaking secrets; entry methods; calls, data changes, messages, retries and overlap behavior | Framework/config trigger detection plus call/behavior/persistence/message extraction (M3 documented home; detailed extraction and acceptance contracts remain open) | Domain discovery → Recovered (`Inferred`) | **V1 — partial artifact path plus evidence gap.** Milestone 3 supplies the scheduling/behavior home, but supported trigger patterns and behavior acceptance criteria remain unspecified. |
 | Error / Exception Behavior | Throws/catches; WCF faults; error codes/results; retries; compensation; logging; operation and state context | Fault-contract evidence (M2); exception/control-flow/call/side-effect extraction (M3 documented home; detailed extraction and acceptance contracts remain open) | Domain discovery → Recovered (`Inferred`) | **V1 — evidence gap.** Declared faults are only part of actual failure behavior. |
 | Audit Behavior / Requirements | Audit-write calls/interceptors; recorded actor/action/object/outcome fields; persistence/message targets; operation coverage; security/config conditions | Call, logging/audit framework, persistence, security, and configuration extraction | Domain discovery → Recovered (`Inferred`); a normative requirement needs versioned Human Context or repository-policy source evidence | **V1 — evidence gap; human context likely.** Observed logging is not automatically a complete business audit requirement. |
@@ -249,12 +280,12 @@ apply the following cross-cutting constraints:
 
 ## Roadmap gap analysis
 
-Before this enhancement, the roadmap described Milestone 2 as **WCF discovery** and Milestone 3 as
-**Relationship/persistence analysis**. This branch clarifies Milestone 3 as
-**Relationship / persistence / behavioral evidence**, followed by Evidence
-persistence/exploration, ContextPack construction, domain recovery, and DDD reasoning. The sequence
-and broader title are directionally correct, but the milestone still needs explicit acceptance
-criteria showing how approved V1 knowledge requirements receive their deterministic foundation.
+Milestone 2 now supplies bounded **Classic WCF discovery** as deterministic Evidence Graph input.
+The roadmap describes Milestone 3 as **Relationship / persistence / behavioral evidence**, followed
+by Evidence persistence/exploration, ContextPack construction, domain recovery, and DDD reasoning.
+The sequence and broader title are directionally correct, but Milestone 3 still needs explicit
+acceptance criteria showing how approved V1 knowledge requirements receive their deterministic
+behavioral foundation.
 
 In particular, the broadened title by itself does not yet commit acceptance criteria for:
 
@@ -345,7 +376,8 @@ corresponding evidence supply can be considered implementation ready.
   persistence extraction are composed within the Milestone 3 workstream.
 - Detailed implementation and conformance rules for the artifact treatments established in
   [V1 Analysis Coverage](01-v1-analysis-coverage.md), including the still-open WSDL/XSD,
-  framework/version, symbol-enrichment, and supported-pattern decisions.
+  additional framework-profile, non-WCF symbol-enrichment, and supported-pattern decisions beyond
+  the bounded M2 WCF contract.
 - Supported levels of interprocedural control/data flow and the conservative resolution policy for
   virtual dispatch, dependency injection, reflection, configuration aliases, and generated code.
 - The vocabulary term/meaning/conflict representation and the role of provenance-bearing Human

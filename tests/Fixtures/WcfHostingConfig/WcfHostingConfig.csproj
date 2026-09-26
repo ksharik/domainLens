@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{E1E901BB-2481-4F54-A8EB-43121D2F578B}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>Fixtures.Wcf.Hosting</RootNamespace>
+    <AssemblyName>Fixtures.Wcf.Hosting</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.ServiceModel" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="HostedService.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="HostedService.svc" />
+    <Content Include="MissingService.svc" />
+    <Content Include="web.config" />
+  </ItemGroup>
+</Project>

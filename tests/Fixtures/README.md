@@ -1,4 +1,4 @@
-# Milestone 1 scanner fixtures
+# Deterministic analyzer fixtures
 
 These directories are repository-shaped **test data** for the deterministic
 Repository Structure Scanner. They are not part of the DomainLens build and
@@ -16,6 +16,13 @@ compared for equivalent canonical output.
 | `PartialAnalysis` | One discoverable SDK-style project with a missing project reference, an unresolved assembly hint path, an unresolved source type, and a recoverable C# syntax error. Analysis should retain useful declarations while reporting explicit partial-analysis diagnostics. |
 | `MaliciousBuild` | One SDK-style project containing repository-controlled `Exec` and custom targets, an inline `UsingTask`, pre/post-build hooks, a package reference, an analyzer/source-generator declaration, repository-local build configuration and imports, a package source, and a script. These remain inert data during safe analysis. |
 | `MsBuildPartial` | One SDK-style project under an unevaluated `Directory.Build.props`, proving source membership remains explicit partial evidence. |
+| `WcfBasic` | A net472 classic WCF contract with an operation, declared fault, data contracts, data members, and a source implementation. |
+| `WcfRich` | Callback and fully qualified service contracts, aliases, attribute suffix variants, overloads, and wrapped/unwrapped message contracts with header/body members. |
+| `WcfInheritance` | Base and derived service contracts plus inherited, explicit, and alternative source implementations. |
+| `WcfHostingConfig` | Resolved and unresolved `.svc` declarations and an allowlisted `system.serviceModel` subset covering services, clients, endpoints, bindings, behaviors, identity, and service activation. |
+| `WcfProgrammatic` | Direct `ServiceHost` and `ChannelFactory<T>` construction plus compiler-generated and hand-written `ClientBase<T>` clients. |
+| `WcfAmbiguousHostile` | A non-net472 profile, duplicate configuration identities, fake and unresolved attributes, missing types, malformed and DTD-bearing XML, an external config reference, remote WSDL/schema imports, a custom extension, and inert marker-writing code. |
+| `WcfSharedSource` | One physical service-contract source file selected by two net472 projects, proving project-specific structural candidates remain explicit and configuration correlation degrades to `Ambiguous` instead of choosing a project. |
 
 ## Marker safety
 
@@ -39,3 +46,9 @@ assembly and sidecar into the copied fixture's `RepositoryPayload` directory,
 replace the sidecar placeholder with its external marker path, analyze the
 fixture, and assert that the marker remains absent. This proves the analyzed
 repository's declared analyzers and generators were neither instantiated nor run.
+
+The `WcfAmbiguousHostile` fixture applies the same rule to classic WCF inputs.
+Neither its repository project target nor its custom behavior-extension
+constructor may execute. The `.config`, `.wsdl`, type strings, and remote URLs
+are inert repository data: tests must never fetch them, load the fixture
+assembly, or invoke WCF configuration APIs that instantiate extensions.

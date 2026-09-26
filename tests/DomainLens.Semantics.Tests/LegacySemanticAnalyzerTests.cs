@@ -4,11 +4,113 @@ using System.Text.Json.Nodes;
 using DomainLens.Core;
 using DomainLens.Scanner;
 using DomainLens.Semantics;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using DiagnosticSeverity = DomainLens.Core.DiagnosticSeverity;
+using IMethodSymbol = Microsoft.CodeAnalysis.IMethodSymbol;
 
 namespace DomainLens.Semantics.Tests;
 
 public sealed class LegacySemanticAnalyzerTests
 {
+    [Fact]
+    public async Task Shared_compilation_context_exposes_only_manifest_verified_ordered_sources_and_trusted_references()
+    {
+        using var fixture = TemporaryFixture.Copy();
+        var document = await ScanAsync(fixture.Path);
+
+        var context = await new LegacySemanticCompilationService()
+            .CreateAsync(fixture.Path, document);
+        var analyzer = new LegacySemanticAnalyzer();
+        var contextResult = await analyzer.AnalyzeAsync(context);
+        var legacyResult = await analyzer.AnalyzeAsync(fixture.Path, document);
+
+        Assert.True(context.CanResolveSemantics);
+        Assert.Equal(
+            SemanticCompilationScope.RepositoryManifestCSharpSources,
+            context.CompilationScope);
+        Assert.Equal(ResolutionQuality.Partial, context.CompilationResolutionQuality);
+        Assert.Equal(TrustedNet472ReferenceCatalog.ReferenceSetId, context.ReferenceSetId);
+        Assert.Equal(TrustedNet472ReferenceCatalog.GetReferenceDescriptors(), context.MetadataReferences);
+        Assert.Equal(context.MetadataReferences, legacyResult.MetadataReferences);
+        Assert.Equal(context.Diagnostics, legacyResult.Diagnostics);
+        Assert.Equal(
+            LegacySemanticAnalysisJson.Serialize(legacyResult, document, indented: false),
+            LegacySemanticAnalysisJson.Serialize(contextResult, document, indented: false));
+        Assert.Equal(
+            context.SourceDocuments.OrderBy(source => source.RelativePath, StringComparer.Ordinal),
+            context.SourceDocuments);
+
+        var source = Assert.Single(context.SourceDocuments);
+        Assert.Equal("CustomerService.cs", source.RelativePath);
+        Assert.Equal(source.RelativePath, source.ManifestEntry.Path);
+        Assert.Equal(document.Snapshot.Manifest.Single(entry => entry.Path == source.RelativePath), source.ManifestEntry);
+        Assert.Equal(await File.ReadAllTextAsync(Path.Combine(fixture.Path, source.RelativePath)), source.Text.ToString());
+        Assert.True(context.TryGetSourceDocument("CustomerService.cs", out var resolvedSource));
+        Assert.Same(source, resolvedSource);
+        Assert.False(context.TryGetSourceDocument("../CustomerService.cs", out _));
+
+        var root = await source.SyntaxTree.GetRootAsync();
+        var serviceContract = root.DescendantNodes()
+            .OfType<AttributeSyntax>()
+            .Single(attribute => attribute.Name.ToString() == "ServiceContract");
+        var model = context.GetSemanticModel(source);
+        var constructor = Assert.IsAssignableFrom<IMethodSymbol>(model.GetSymbolInfo(serviceContract).Symbol);
+        Assert.Equal("System.ServiceModel.ServiceContractAttribute", constructor.ContainingType.ToDisplayString());
+        var span = LegacySemanticCompilationContext.ToSourceSpan(
+            source.SyntaxTree,
+            serviceContract.Span);
+        Assert.Equal("ServiceContract", source.Text.ToString(serviceContract.Span));
+        Assert.Equal(serviceContract.SpanStart, span.StartOffset);
+        Assert.Equal(serviceContract.Span.Length, span.Length);
+        Assert.DoesNotContain(
+            fixture.Path,
+            string.Join('|', context.SourceDocuments.Select(item => item.RelativePath)),
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Manifest_reader_supports_inert_non_csharp_files_and_rejects_hash_length_and_path_drift()
+    {
+        using var fixture = TemporaryFixture.Copy();
+        var configPath = Path.Combine(fixture.Path, "app.config");
+        var original = Encoding.UTF8.GetBytes(
+            "<configuration><system.serviceModel /></configuration>");
+        await File.WriteAllBytesAsync(configPath, original);
+        var document = await ScanAsync(fixture.Path);
+        var entry = Assert.Single(
+            document.Snapshot.Manifest,
+            item => item.Path == "app.config");
+        var reader = new ManifestVerifiedFileReader();
+
+        var valid = await reader.ReadAsync(fixture.Path, entry);
+
+        Assert.True(valid.IsSuccess);
+        Assert.Equal(ManifestVerifiedFileReadStatus.Success, valid.Status);
+        Assert.Equal("app.config", valid.RelativePath);
+        Assert.Equal(original, valid.Content.ToArray());
+
+        var changed = original.ToArray();
+        changed[1] = changed[1] == (byte)'c' ? (byte)'C' : (byte)'c';
+        await File.WriteAllBytesAsync(configPath, changed);
+        var hashMismatch = await reader.ReadAsync(fixture.Path, entry);
+        Assert.Equal(ManifestVerifiedFileReadStatus.HashMismatch, hashMismatch.Status);
+        Assert.True(hashMismatch.Content.IsEmpty);
+
+        await File.WriteAllBytesAsync(configPath, original.Concat(new byte[] { (byte)' ' }).ToArray());
+        var lengthMismatch = await reader.ReadAsync(fixture.Path, entry);
+        Assert.Equal(ManifestVerifiedFileReadStatus.LengthMismatch, lengthMismatch.Status);
+        Assert.True(lengthMismatch.Content.IsEmpty);
+
+        var unsafeEntry = new ManifestEntry(
+            "../outside.config",
+            CanonicalIdentity.Sha256Hex(Array.Empty<byte>()),
+            0);
+        var unsafePath = await reader.ReadAsync(fixture.Path, unsafeEntry);
+        Assert.Equal(ManifestVerifiedFileReadStatus.UnsafeManifestPath, unsafePath.Status);
+        Assert.True(unsafePath.Content.IsEmpty);
+    }
+
     [Fact]
     public async Task Net472_compilation_binds_framework_and_local_symbols_without_hiding_missing_types()
     {

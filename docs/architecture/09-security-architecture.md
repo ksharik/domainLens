@@ -18,7 +18,8 @@ System policy
 ```
 
 This chapter distinguishes **CURRENT — Milestone 0 feasibility**,
-**CURRENT — Milestone 1**, **PLANNED — Product V1**, and **FUTURE** controls.
+**CURRENT — Milestone 1**, **CURRENT — Milestone 2**, **PLANNED — Product V1**, and **FUTURE**
+controls.
 Milestone 0 is tested spike evidence, not production security readiness. The concise approved security requirements remain in
 [Security](../08-security.md); runtime isolation is described in
 [Runtime Architecture](03-runtime-architecture.md).
@@ -39,7 +40,7 @@ flowchart LR
         Validator[Output and finding validator]
     end
 
-    subgraph WorkerBoundary[Untrusted repository worker boundary - PLANNED]
+    subgraph WorkerBoundary["Repository worker — CURRENT local process; PLANNED containment"]
         Workspace[Disposable repository workspace]
         Analyzers[Deterministic analyzers]
     end
@@ -62,8 +63,11 @@ This is a logical trust diagram, not the current deployment. Milestone 1 is a
 local CLI/library running in one process under the invoking user's OS identity.
 Milestone 0 adds a separate child worker, bounded workspace/result protocol,
 deadline/cancellation, and cleanup under that same OS identity. It proves process
-separation but not the planned OS containment or control-plane boundaries. See the
-[Milestone 0 Feasibility Report](../12-milestone-0-deployment-security-feasibility.md).
+separation but not the planned OS containment or control-plane boundaries. Milestone 2 runs the
+bounded Classic WCF analyzer inside that same child and keeps repository WCF parsing out of the
+trusted Host; it does not strengthen the unproven OS boundary. See the
+[Milestone 0 Feasibility Report](../12-milestone-0-deployment-security-feasibility.md) and the
+[Milestone 2 Classic WCF Discovery contract](../13-milestone-2-wcf-discovery.md).
 The current Host and Worker depend on a neutral, dependency-light
 `DomainLens.Analyzer.Protocol` wire-contract project (`Host -> Protocol <- Worker`); the Worker
 does not depend on the trusted Host implementation.
@@ -94,9 +98,9 @@ does not depend on the trusted Host implementation.
 | External caller or service consumer | Unauthorized repository access, cross-owner or cross-scope reads, abusive job volume, tampering with review decisions. |
 | Dependencies and operations | Compromised packages/images, overprivileged identity, secret leakage in logs, stale vulnerable workers. |
 
-## CURRENT — Milestones 0 and 1 trust model
+## CURRENT — Milestones 0–2 trust model
 
-Milestones 0 and 1 accept an already-local directory and optional solution selection.
+Milestones 0–2 accept an already-local directory and optional solution selection.
 The invoker authorizes both the input directory and output artifact path. There
 is no Web/API tier, repository URL intake, identity/access model, persistent
 database, cloud deployment, model call, or agent tool loop. The M0 child worker
@@ -119,6 +123,22 @@ this repository-wide synthetic scope and `Partial` resolution; it does not
 reproduce effective project membership, references, target configuration,
 conditional items, or preprocessor settings. It does not evaluate a repository
 project, admit repository binaries as metadata, restore, build, or emit.
+
+Milestone 2 creates that controlled compilation once per Worker run and shares it in process with
+the Classic WCF analyzer. The analyzer recognizes only the allowlisted framework identities and
+bounded source patterns, parses `.svc` directives as inert text, and parses an allowlisted
+`system.serviceModel` subset through hardened XML APIs. It never uses runtime WCF configuration
+APIs, invokes ASP.NET compilation, loads a repository assembly, activates a service/factory/
+behavior/extension/serializer, or contacts a configured endpoint, database, package feed, WSDL,
+schema, or external configuration source. Roslyn and XML objects never cross the result protocol;
+only normalized evidence and diagnostics do.
+
+Exact catalog identity is not the same as exact repository-source evidence. The centralized M2
+profile policy permits `Exact` source observations only when the physical source belongs to one
+deterministically selected `net472`/`v4.7.2` project. Unsupported, unknown, multiple, or
+conditional profiles emit `DL4001`, constrain source evidence to `Partial` or weaker, and produce
+`PartialSuccess`. This policy does not downgrade independent `.svc`/configuration declarations,
+which remain qualified by their declarative rules.
 
 Repository `Exec`, `UsingTask`, pre/post-build event, import, target, analyzer,
 generator, and other build constructs are treated as text/XML data. Detected
@@ -150,6 +170,23 @@ Project XML is loaded with:
 Malformed XML becomes a diagnostic and failed project descriptor. C# syntax
 errors become partial evidence and diagnostics when usable syntax remains.
 Neither parser grants repository content instruction status.
+
+Milestone 2 applies the same XML posture to `.config` files containing `system.serviceModel`:
+`DtdProcessing.Prohibit`, a null `XmlResolver`, no schema retrieval, and document-character bounds
+no larger than the already manifest-verified content. DTD/XXE input is rejected with a typed
+diagnostic. Custom extension type strings and external/config-source declarations remain inert
+metadata or diagnostics; they are never resolved, fetched, or instantiated. Namespace-qualified
+metadata is preflighted iteratively with a 4,096-element cap, and unsupported behavior descendants
+use a separate 256-element cap. Exhaustion emits source-backed `DL4306` and prevents unsafe
+promotion when the namespace preflight is incomplete. XDT controls under `system.serviceModel`
+emit `DL4307`, remain inert, are never applied, and cause the section's declarations to remain
+diagnostic-only. `.svc` files are parsed by a bounded directive parser, not ASP.NET.
+
+The `.svc` and `.config` parsers accept only strict UTF-8 with or without BOM and BOM-marked UTF-16
+LE/BE. Invalid byte sequences emit `DL4502`; unsupported byte/declaration encodings emit `DL4503`;
+and a supported XML declaration incompatible with the decoded bytes emits `DL4308`. These cases
+produce no WCF evidence from the affected artifact and no replacement-character or platform-code-
+page fallback is attempted. XML DTD/resolver controls still apply after successful decoding.
 
 ### Current filesystem controls
 
@@ -196,6 +233,12 @@ failure injection and adversarial cleanup races are not proven.
 The staged-tree check is a pre/post comparison, not read-only enforcement, and
 does not prove detection of a transient change restored before recapture.
 
+Within the Worker, `ManifestVerifiedFileReader` accepts only a caller-selected manifest entry,
+normalizes and contains its repository-relative path, rejects reparse components, prechecks the
+captured length, reads exactly that many bytes while hashing, and postchecks length before
+returning content. M2 uses it for `.cs`, `.svc`, and `.config`; a configuration value cannot cause
+an arbitrary path to be opened.
+
 The inventory hashes all included readable file types, even though it retains
 content only for selected structural/source extensions. That behavior matters
 for privacy and capacity policy in Product V1.
@@ -204,10 +247,10 @@ for privacy and capacity policy in Product V1.
 
 - Each manifest entry carries the SHA-256 hash and actual byte count of its
   bounded read.
-- The semantic analyzer opens selected manifest C# sources as seekable streams, prechecks their
-  exact captured length, allocates and reads at most that length in bounded chunks while hashing
-  incrementally, and postchecks the handle before decoding. Early EOF, growth, length/hash drift,
-  and cancellation prevent that source from reaching parsing.
+- The shared manifest reader opens selected manifest C#, `.svc`, and `.config` files as seekable
+  streams, prechecks their exact captured length, allocates and reads at most that length in
+  bounded chunks while hashing incrementally, and postchecks the handle before decoding. Early EOF,
+  growth, length/hash drift, and cancellation prevent that content from reaching parsing.
 - Snapshot, evidence, node, and edge identities are content-derived and are
   recomputed by graph validation.
 - Canonical JSON carries a whole-document SHA-256 hash that excludes only its
@@ -218,10 +261,23 @@ for privacy and capacity policy in Product V1.
   embedded in the artifact. It does not follow repository paths from the JSON.
 - Scan output uses a same-directory temporary file and replacement to avoid a
   partially written canonical artifact under normal filesystem semantics.
+- WCF contributions are merged through deterministic conflict checks, then the Worker validates
+  the complete graph and verifies its canonical hash before serializing the existing result
+  envelope. The trusted Host independently repeats strict graph/hash/snapshot and semantic-result
+  validation and still treats Worker output as untrusted.
+- Repository-controlled WCF text that reaches graph or diagnostic fields is persisted in at most
+  1,024 UTF-16 code units. Oversized values use a bounded surrogate-safe prefix, an explicit
+  `domainlens:truncated=true` marker, `originalLengthUtf16`, and `sha256Utf16` over the exact
+  big-endian UTF-16 code-unit sequence. Matching occurs against the full manifest-bounded value
+  before projection. Unpaired UTF-16 source constants and input containing the reserved marker use
+  the same digest-backed representation, with unsafe code units rendered as ASCII `\uXXXX`, so
+  JSON serialization cannot silently substitute text; `DL4504` exposes every abbreviation and
+  makes the result `PartialSuccess`.
 
 These are integrity and consistency controls, not authentication. The artifact
 is not digitally signed; the validator does not reopen a repository, prove
-that evidence is semantically true, or establish who produced the file.
+that evidence is semantically true, establish who produced the file, or provide general secret
+redaction/data-loss prevention.
 
 ### Current security-focused tests
 
@@ -256,7 +312,28 @@ The current security-focused suites include checks that:
   loaded managed assembly whose location is under the staged repository; and
 - semantic source reads reject content that is larger, shorter, grown during the read, or changed
   at the same length; do not consume beyond the captured bound; propagate mid-read cancellation;
-  and still accept a valid manifest source.
+  and still accept a valid manifest source;
+- fake repository-defined WCF look-alike attributes are not promoted to trusted WCF identities,
+  while fully qualified, suffix, and alias forms bind only through the tool-owned catalog;
+- net472/v4.7.2 source can retain exact local observations, while .NET Framework 4.6.1, 4.8,
+  unknown, multiple, and conditional project profiles produce `DL4001` and no exact source
+  observation; unrelated declarative evidence retains its own quality;
+- malformed WCF XML, DTD/XXE payloads, external configuration, remote-looking WSDL/schema values,
+  malicious-looking endpoint/type strings, and unsupported custom extensions remain inert and
+  produce bounded evidence or typed diagnostics; and
+- strict UTF-8/BOM-marked UTF-16 positive cases retain decoded UTF-16 spans, while invalid UTF-8,
+  unsupported encodings, and incompatible XML declarations produce typed diagnostics and no WCF
+  evidence from the affected artifact; and
+- oversized source, `.svc`, configuration, custom-extension, diagnostic, and unresolved-target
+  text remains within the persistence bound, carries marker/length/digest metadata, does not merge
+  distinct full values with a common prefix, produces `DL4504`/`PartialSuccess`, and stays
+  deterministic and graph-valid; and
+- deep unsupported behavior metadata reaches a deterministic traversal diagnostic without
+  recursion, while XDT controls suppress section promotion and non-XDT namespace metadata is
+  diagnosed without hiding otherwise supported unqualified declarations; and
+- a repository-defined custom WCF extension whose constructor writes a marker is detected only as
+  text, the constructor/build markers remain absent, and no generated `bin` or `obj` output appears
+  in the analyzed fixture.
 
 The test suite does not constitute a complete hostile-workload containment or malware
 assessment. It has no portable Unix FIFO/socket test, OS-enforced no-egress test, restricted-
@@ -306,7 +383,7 @@ prompt-injection test because those capabilities do not exist yet.
   workflow evidence, not a DNS/network probe; OS-enforced egress denial remains
   **NOT PROVEN**.
 
-For these reasons, neither the standalone scanner nor the M0 child-process host
+For these reasons, neither the standalone scanner nor the M0/M2 child-process host
 is a production hostile-workload boundary. Production analysis still requires
 an approved containment mechanism, identity, filesystem/network/resource
 controls, and operational verification.
@@ -461,14 +538,15 @@ DECISIONS.
 
 ## Control ownership matrix
 
-| Control | CURRENT — M0/M1 | PLANNED — V1 owner |
+| Control | CURRENT — M0/M1/M2 | PLANNED — V1 owner |
 |---|---|---|
 | Local inventory/path/resource bounds | Implemented in scanner | Analyzer worker and analyzer |
-| XML external-entity prevention | Implemented in project reader | Analyzer suite |
+| XML external-entity prevention | Implemented in project reader and M2 WCF configuration parser | Analyzer suite |
 | No repository build execution | Implemented structurally | Analyzer contract plus worker policy |
 | Evidence identity/hash/graph validation | Implemented in core | Evidence Kernel and coordinator |
 | Child-process crash/deadline/cancellation/result gate | **PROVEN for M0 test topology**; deadline governs worker/result acceptance, not independent trusted-postprocessing preemption; same OS identity | Worker host/platform and coordinator |
 | Exact-catalog net472 `SemanticModel` enrichment | **FEASIBLE WITH CONSTRAINTS**; bounded exact-length/hash-verified source reads, flattened manifest-source compilation, `Partial` resolution, no repository build/evaluation | Analyzer profile, Evidence Kernel and worker |
+| Classic WCF source/`.svc`/configuration safety | Bounded M2 rules implemented in the child Worker; source `Exact` gated to one deterministic net472/v4.7.2 project; manifest-verified reads; strict UTF decoding; hardened XML; 1,024-code-unit persisted-text representation; capped iterative metadata traversal; diagnostic-only XDT handling; inert extension/factory metadata; no activation or endpoint contact | Analyzer profile, Evidence Kernel and worker |
 | Environment minimization | Named-secret non-inheritance and job-scoped temp paths proven; not identity isolation | Worker host/platform |
 | Public URL and SSRF validation | Not applicable | Repository intake |
 | Git acquisition safety | Not implemented | Repository intake and worker bootstrap |
@@ -512,11 +590,13 @@ action could not occur.
    any mediated outbound service.
 4. **Production limits:** repository/object/file sizes, CPU/memory/disk quotas,
    timeouts, concurrency, and request/session/principal/ownership-scope or tenant rate limits as applicable.
-5. **Safe semantic analysis:** M0 proves exact-catalog net472 symbol binding for
-   one flattened manifest-source compilation with declared `Partial` resolution
-   and without repository MSBuild evaluation. Project-faithful configuration,
-   supported reference profiles, conditional compilation, evidence projection,
-   coverage accounting, and any need beyond this narrow mechanism remain open.
+5. **Safe semantic analysis:** M0 proves exact-catalog net472 symbol binding for one flattened
+   manifest-source compilation with declared `Partial` resolution and without repository MSBuild
+   evaluation. M2 reuses that context and projects only its bounded WCF observations; it permits
+   `Exact` source quality only for one deterministic net472/v4.7.2 project and emits `DL4001`
+   otherwise. Project-faithful configuration, additional reference profiles, conditional
+   compilation, non-WCF projection, broader coverage accounting, and any need beyond this narrow
+   mechanism remain open.
    Repository build/restore and repository-controlled MSBuild evaluation do not
    become options.
 6. **Source egress:** allowed model providers, regions, retention/training

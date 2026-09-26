@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <types>
+    <xsd:schema>
+      <xsd:import namespace="urn:never-fetch" schemaLocation="https://example.invalid/remote-schema.xsd" />
+    </xsd:schema>
+  </types>
+  <import namespace="urn:never-fetch-wsdl" location="https://example.invalid/remote.wsdl" />
+</definitions>
