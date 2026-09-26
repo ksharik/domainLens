@@ -33,6 +33,7 @@ internal sealed class WcfSourceAnalyzer
 
     private readonly WcfContributionBuilder _builder;
     private readonly WcfSourceNodeIndex _nodeIndex;
+    private readonly WcfFrameworkProfilePolicy _frameworkProfilePolicy;
     private readonly LegacySemanticCompilationContext _context;
     private readonly CancellationToken _cancellationToken;
     private readonly Dictionary<string, INamedTypeSymbol?> _framework = new(StringComparer.Ordinal);
@@ -71,6 +72,7 @@ internal sealed class WcfSourceAnalyzer
     {
         _builder = builder ?? throw new ArgumentNullException(nameof(builder));
         _nodeIndex = new WcfSourceNodeIndex(builder.Baseline);
+        _frameworkProfilePolicy = new WcfFrameworkProfilePolicy(builder.Baseline);
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _cancellationToken = cancellationToken;
         foreach (var metadataName in FrameworkMetadataNames)
@@ -1683,30 +1685,21 @@ internal sealed class WcfSourceAnalyzer
 
     private void DiagnoseFrameworkProfiles()
     {
-        var nodeById = _builder.Baseline.Nodes.ToDictionary(item => item.NodeId, StringComparer.Ordinal);
         foreach (var source in _profileEvidence.Values
                      .OrderBy(item => item.RelativePath, StringComparer.Ordinal)
                      .ThenBy(item => item.Node.NodeId, StringComparer.Ordinal))
         {
             var projectId = source.Node.ProjectId;
-            var diagnosticKey = projectId ?? $"<unassigned>:{source.RelativePath}";
-            if (!_profileDiagnostics.Add(diagnosticKey))
+            var assessment = _frameworkProfilePolicy.AssessProjectContext(
+                source.RelativePath,
+                projectId);
+            if (assessment.AllowsExactSourceObservation)
             {
                 continue;
             }
 
-            string? frameworks = null;
-            if (projectId is not null && nodeById.TryGetValue(projectId, out var project))
-            {
-                project.Properties.TryGetValue("targetFrameworks", out frameworks);
-            }
-
-            var values = (frameworks ?? string.Empty)
-                .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            var supported = values.Length == 1 &&
-                            (string.Equals(values[0], "net472", StringComparison.OrdinalIgnoreCase) ||
-                             string.Equals(values[0], "v4.7.2", StringComparison.OrdinalIgnoreCase));
-            if (supported)
+            var diagnosticKey = projectId ?? $"<unassigned>:{source.RelativePath}";
+            if (!_profileDiagnostics.Add(diagnosticKey))
             {
                 continue;
             }
@@ -1718,7 +1711,8 @@ internal sealed class WcfSourceAnalyzer
                 source.RelativePath,
                 properties: new SortedDictionary<string, string>(StringComparer.Ordinal)
                 {
-                    ["declaredTargetFrameworks"] = frameworks ?? string.Empty,
+                    ["declaredTargetFrameworks"] = assessment.DeclaredTargetFrameworks,
+                    ["profileCompatibility"] = assessment.Compatibility.ToString(),
                     ["trustedReferenceSet"] = _context.ReferenceSetId,
                 });
         }
@@ -1906,14 +1900,25 @@ internal sealed class WcfSourceAnalyzer
         string ruleId,
         ResolutionBasis basis,
         ResolutionQuality quality,
-        string? details) =>
-        _builder.AddEvidence(
+        string? details)
+    {
+        var assessment = _frameworkProfilePolicy.AssessObservation(source.RelativePath);
+        var constrainedQuality = WcfFrameworkProfilePolicy.Constrain(quality, assessment);
+        if (constrainedQuality != quality)
+        {
+            details = string.IsNullOrWhiteSpace(details)
+                ? assessment.QualityDetails
+                : $"{details} {assessment.QualityDetails}";
+        }
+
+        return _builder.AddEvidence(
             source.RelativePath,
             LegacySemanticCompilationContext.ToSourceSpan(source.SyntaxTree, syntax.Span),
             ruleId,
             basis,
-            quality,
+            constrainedQuality,
             details);
+    }
 
     private bool TryGetSource(ISymbol symbol, out LegacySemanticSourceDocument source)
     {

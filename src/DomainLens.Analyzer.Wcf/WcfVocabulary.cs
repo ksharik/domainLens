@@ -7,7 +7,7 @@ namespace DomainLens.Analyzer.Wcf;
 public static class WcfVocabulary
 {
     public const string ExtractorId = "domainlens.classic-wcf";
-    public const string ExtractorVersion = "0.1.0";
+    public const string ExtractorVersion = "0.1.1";
 
     public static class NodeKinds
     {
@@ -173,6 +173,7 @@ public static class WcfVocabulary
         public const string ConfigurationEndpointBehavior = "wcf.config.endpoint-behavior";
         public const string ConfigurationServiceBehavior = "wcf.config.service-behavior";
         public const string ConfigurationActivationLink = "wcf.config.activation-link";
+        public const string PersistedTextAbbreviation = "wcf.safety.persisted-text-abbreviation";
     }
 
     public static class Diagnostics
@@ -198,8 +199,12 @@ public static class WcfVocabulary
         public const string ExtensionDetected = "DL4305";
         public const string ConfigurationTraversalLimitExceeded = "DL4306";
         public const string ConfigurationTransformNotApplied = "DL4307";
+        public const string IncompatibleXmlEncodingDeclaration = "DL4308";
         public const string UnsupportedSourcePattern = "DL4401";
         public const string ManifestReadFailed = "DL4501";
+        public const string InvalidTextEncoding = "DL4502";
+        public const string UnsupportedTextEncoding = "DL4503";
+        public const string PersistedTextAbbreviated = "DL4504";
     }
 
     public static class FrameworkTypes

@@ -49,7 +49,26 @@ internal sealed class WcfSvcAnalyzer(ManifestVerifiedFileReader fileReader)
                 continue;
             }
 
-            var source = WcfTextDocument.Decode(read.Content);
+            var decode = WcfTextDocument.TryDecode(read.Content);
+            if (!decode.IsSuccess)
+            {
+                builder.AddDiagnostic(
+                    decode.Status == WcfTextDecodeStatus.Invalid
+                        ? WcfVocabulary.Diagnostics.InvalidTextEncoding
+                        : WcfVocabulary.Diagnostics.UnsupportedTextEncoding,
+                    DiagnosticSeverity.Warning,
+                    decode.Status == WcfTextDecodeStatus.Invalid
+                        ? "The .svc file contains an invalid byte sequence for the selected supported encoding and was not parsed."
+                        : "The .svc file uses an unsupported text encoding and was not parsed.",
+                    entry.Path,
+                    properties: new SortedDictionary<string, string>(StringComparer.Ordinal)
+                    {
+                        ["detectedEncoding"] = decode.EncodingLabel,
+                    });
+                continue;
+            }
+
+            var source = decode.Document!;
             var parsed = ParseDirectives(source.Text);
             var foundServiceHost = false;
             foreach (var directive in parsed.Directives)

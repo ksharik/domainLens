@@ -7,6 +7,7 @@ internal sealed class WcfContributionBuilder
     private readonly AnalysisDocument _baseline;
     private readonly IReadOnlyDictionary<string, ManifestEntry> _manifest;
     private readonly IReadOnlyDictionary<string, EvidenceNode> _baselineNodes;
+    private readonly IReadOnlyDictionary<string, EvidenceRecord> _baselineEvidence;
     private readonly Dictionary<string, EvidenceRecord> _evidence = new(StringComparer.Ordinal);
     private readonly Dictionary<string, MutableNode> _nodes = new(StringComparer.Ordinal);
     private readonly Dictionary<string, MutableEdge> _edges = new(StringComparer.Ordinal);
@@ -20,6 +21,7 @@ internal sealed class WcfContributionBuilder
             item => CanonicalIdentity.NormalizeRepositoryPath(item.Path),
             StringComparer.Ordinal);
         _baselineNodes = baseline.Nodes.ToDictionary(item => item.NodeId, StringComparer.Ordinal);
+        _baselineEvidence = baseline.Evidence.ToDictionary(item => item.EvidenceId, StringComparer.Ordinal);
     }
 
     public AnalysisDocument Baseline => _baseline;
@@ -62,6 +64,9 @@ internal sealed class WcfContributionBuilder
             ruleId,
             basis,
             quality);
+        var detailsProjection = details is null
+            ? null
+            : WcfPersistedTextPolicy.Project(details);
         var record = new EvidenceRecord(
             id,
             _baseline.Snapshot.SnapshotId,
@@ -72,7 +77,7 @@ internal sealed class WcfContributionBuilder
                 WcfVocabulary.ExtractorId,
                 WcfVocabulary.ExtractorVersion,
                 ruleId),
-            new EvidenceResolution(basis, quality, details));
+            new EvidenceResolution(basis, quality, detailsProjection?.Value));
 
         if (_evidence.TryGetValue(id, out var existing) && existing != record)
         {
@@ -80,6 +85,15 @@ internal sealed class WcfContributionBuilder
         }
 
         _evidence[id] = record;
+        if (detailsProjection is { IsAbbreviated: true })
+        {
+            AddPersistedTextDiagnostic(
+                detailsProjection,
+                "evidence.resolution.details",
+                relativePath,
+                [id]);
+        }
+
         return id;
     }
 
@@ -95,6 +109,7 @@ internal sealed class WcfContributionBuilder
             throw new InvalidOperationException("Only a canonical baseline node can be enriched.");
         }
 
+        var normalizedEvidenceIds = NormalizeEvidenceIds(evidenceIds);
         AddOrMergeNode(
             baselineNode.NodeId,
             baselineNode.LogicalId,
@@ -102,9 +117,9 @@ internal sealed class WcfContributionBuilder
             baselineNode.Name,
             baselineNode.QualifiedName,
             baselineNode.ProjectId,
-            evidenceIds,
+            normalizedEvidenceIds,
             attributes,
-            properties);
+            ProjectProperties(properties, "node.properties", normalizedEvidenceIds));
     }
 
     public EvidenceNode AddNode(
@@ -116,19 +131,32 @@ internal sealed class WcfContributionBuilder
         IEnumerable<string>? attributes = null,
         IReadOnlyDictionary<string, string>? properties = null)
     {
+        var normalizedEvidenceIds = NormalizeEvidenceIds(evidenceIds);
+        var projectedName = ProjectText(name, "node.name", normalizedEvidenceIds);
+        var projectedQualifiedName = ProjectText(
+            qualifiedName,
+            "node.qualifiedName",
+            normalizedEvidenceIds);
+        var projectedProperties = ProjectProperties(
+            properties,
+            "node.properties",
+            normalizedEvidenceIds);
         var projectQualifiedName = GetProjectQualifiedName(projectId);
-        var logicalId = CanonicalIdentity.CreateLogicalNodeId(projectQualifiedName, kind, qualifiedName);
+        var logicalId = CanonicalIdentity.CreateLogicalNodeId(
+            projectQualifiedName,
+            kind,
+            projectedQualifiedName);
         var nodeId = CanonicalIdentity.CreateNodeId(_baseline.Snapshot.SnapshotId, logicalId);
         AddOrMergeNode(
             nodeId,
             logicalId,
             kind,
-            name,
-            qualifiedName,
+            projectedName,
+            projectedQualifiedName,
             projectId,
-            evidenceIds,
+            normalizedEvidenceIds,
             attributes,
-            properties);
+            projectedProperties);
         return ToNode(_nodes[nodeId]);
     }
 
@@ -153,11 +181,24 @@ internal sealed class WcfContributionBuilder
             EnsureKnownNode(toNodeId);
         }
 
+        var normalizedEvidenceIds = NormalizeEvidenceIds(evidenceIds);
         var normalizedTarget = unresolvedTarget?.Trim();
         if (unresolvedTarget is not null && normalizedTarget!.Length == 0)
         {
             throw new ArgumentException("An unresolved WCF target cannot be blank.");
         }
+
+        if (normalizedTarget is not null)
+        {
+            normalizedTarget = ProjectText(
+                normalizedTarget,
+                "edge.unresolvedTarget",
+                normalizedEvidenceIds);
+        }
+
+        var projectedDetails = details is null
+            ? null
+            : ProjectText(details, "edge.resolution.details", normalizedEvidenceIds);
 
         var key = CanonicalIdentity.Create(
             "wcf-edge-key",
@@ -174,18 +215,15 @@ internal sealed class WcfContributionBuilder
                 fromNodeId,
                 toNodeId,
                 normalizedTarget,
-                new EvidenceResolution(basis, quality, details));
+                new EvidenceResolution(basis, quality, projectedDetails));
             _edges.Add(key, edge);
         }
-        else if (!string.Equals(edge.Resolution.Details, details, StringComparison.Ordinal))
+        else if (!string.Equals(edge.Resolution.Details, projectedDetails, StringComparison.Ordinal))
         {
             throw new InvalidOperationException($"Conflicting details for WCF edge '{key}'.");
         }
 
-        if (evidenceIds is not null)
-        {
-            edge.EvidenceIds.UnionWith(evidenceIds);
-        }
+        edge.EvidenceIds.UnionWith(normalizedEvidenceIds);
 
         if (quality is ResolutionQuality.Ambiguous or ResolutionQuality.Unresolved)
         {
@@ -202,21 +240,28 @@ internal sealed class WcfContributionBuilder
         IReadOnlyDictionary<string, string>? properties = null,
         bool affectsStatus = true)
     {
+        var normalizedEvidenceIds = NormalizeEvidenceIds(evidenceIds);
         var normalizedPath = relativePath is null
             ? null
             : CanonicalIdentity.NormalizeRepositoryPath(relativePath);
+        var normalizedMessage = message.Replace('\r', ' ').Replace('\n', ' ').Trim();
+        var projectedMessage = ProjectText(
+            normalizedMessage,
+            "diagnostic.message",
+            normalizedEvidenceIds,
+            normalizedPath);
+        var projectedProperties = ProjectProperties(
+            properties,
+            "diagnostic.properties",
+            normalizedEvidenceIds,
+            normalizedPath);
         var diagnostic = new AnalysisDiagnostic(
             code,
             severity,
-            message.Replace('\r', ' ').Replace('\n', ' ').Trim(),
+            projectedMessage,
             normalizedPath,
-            (evidenceIds ?? []).Distinct(StringComparer.Ordinal).OrderBy(item => item, StringComparer.Ordinal).ToArray(),
-            new SortedDictionary<string, string>(
-                (properties ?? new Dictionary<string, string>()).ToDictionary(
-                    item => item.Key,
-                    item => item.Value,
-                    StringComparer.Ordinal),
-                StringComparer.Ordinal));
+            normalizedEvidenceIds,
+            projectedProperties);
         _diagnostics.Add(diagnostic);
         if (affectsStatus && severity is DiagnosticSeverity.Warning or DiagnosticSeverity.Error)
         {
@@ -323,6 +368,109 @@ internal sealed class WcfContributionBuilder
             }
         }
     }
+
+    private string ProjectText(
+        string value,
+        string field,
+        IReadOnlyList<string> evidenceIds,
+        string? relativePath = null)
+    {
+        var projection = WcfPersistedTextPolicy.Project(value);
+        if (projection.IsAbbreviated)
+        {
+            AddPersistedTextDiagnostic(
+                projection,
+                field,
+                relativePath ?? GetEvidencePath(evidenceIds),
+                evidenceIds);
+        }
+
+        return projection.Value;
+    }
+
+    private SortedDictionary<string, string> ProjectProperties(
+        IReadOnlyDictionary<string, string>? properties,
+        string fieldPrefix,
+        IReadOnlyList<string> evidenceIds,
+        string? relativePath = null)
+    {
+        var result = new SortedDictionary<string, string>(StringComparer.Ordinal);
+        foreach (var pair in properties ?? EmptyProperties)
+        {
+            result[pair.Key] = ProjectText(
+                pair.Value,
+                $"{fieldPrefix}.{pair.Key}",
+                evidenceIds,
+                relativePath);
+        }
+
+        return result;
+    }
+
+    private void AddPersistedTextDiagnostic(
+        WcfPersistedTextProjection projection,
+        string field,
+        string? relativePath,
+        IReadOnlyList<string> evidenceIds)
+    {
+        if (!projection.IsAbbreviated || projection.Sha256 is null)
+        {
+            return;
+        }
+
+        _diagnostics.Add(new AnalysisDiagnostic(
+            WcfVocabulary.Diagnostics.PersistedTextAbbreviated,
+            DiagnosticSeverity.Warning,
+            "Repository-controlled WCF text exceeded the persistence limit or required a JSON-safe representation and was stored as a bounded prefix, its original UTF-16 length, and a SHA-256 digest.",
+            relativePath,
+            evidenceIds,
+            new SortedDictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["field"] = field,
+                ["invalidUtf16"] = projection.HadInvalidUtf16 ? "true" : "false",
+                ["maximumPersistedCharacters"] = WcfPersistedTextPolicy.MaximumPersistedCharacters
+                    .ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ["originalLengthUtf16"] = projection.OriginalLengthUtf16
+                    .ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ["ruleId"] = WcfVocabulary.Rules.PersistedTextAbbreviation,
+                ["reservedMarkerEscaped"] = projection.ContainedReservedMarker ? "true" : "false",
+                ["sha256Utf16"] = projection.Sha256,
+                ["truncated"] = "true",
+            }));
+        _isPartial = true;
+    }
+
+    private string? GetEvidencePath(IEnumerable<string> evidenceIds)
+    {
+        var paths = evidenceIds
+            .Select(GetEvidence)
+            .Where(item => item is not null)
+            .Select(item => item!.RelativePath)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(item => item, StringComparer.Ordinal)
+            .Take(2)
+            .ToArray();
+        return paths.Length == 1 ? paths[0] : null;
+    }
+
+    private EvidenceRecord? GetEvidence(string evidenceId)
+    {
+        if (_evidence.TryGetValue(evidenceId, out var contributionEvidence))
+        {
+            return contributionEvidence;
+        }
+
+        return _baselineEvidence.GetValueOrDefault(evidenceId);
+    }
+
+    private static string[] NormalizeEvidenceIds(IEnumerable<string>? evidenceIds) =>
+        (evidenceIds ?? [])
+        .Distinct(StringComparer.Ordinal)
+        .OrderBy(item => item, StringComparer.Ordinal)
+        .ToArray();
+
+    private static readonly IReadOnlyDictionary<string, string> EmptyProperties =
+        new Dictionary<string, string>();
 
     private string? GetProjectQualifiedName(string? projectId)
     {

@@ -133,6 +133,13 @@ behavior/extension/serializer, or contacts a configured endpoint, database, pack
 schema, or external configuration source. Roslyn and XML objects never cross the result protocol;
 only normalized evidence and diagnostics do.
 
+Exact catalog identity is not the same as exact repository-source evidence. The centralized M2
+profile policy permits `Exact` source observations only when the physical source belongs to one
+deterministically selected `net472`/`v4.7.2` project. Unsupported, unknown, multiple, or
+conditional profiles emit `DL4001`, constrain source evidence to `Partial` or weaker, and produce
+`PartialSuccess`. This policy does not downgrade independent `.svc`/configuration declarations,
+which remain qualified by their declarative rules.
+
 Repository `Exec`, `UsingTask`, pre/post-build event, import, target, analyzer,
 generator, and other build constructs are treated as text/XML data. Detected
 executable project elements produce informational diagnostic `DL2009`; target
@@ -174,6 +181,12 @@ use a separate 256-element cap. Exhaustion emits source-backed `DL4306` and prev
 promotion when the namespace preflight is incomplete. XDT controls under `system.serviceModel`
 emit `DL4307`, remain inert, are never applied, and cause the section's declarations to remain
 diagnostic-only. `.svc` files are parsed by a bounded directive parser, not ASP.NET.
+
+The `.svc` and `.config` parsers accept only strict UTF-8 with or without BOM and BOM-marked UTF-16
+LE/BE. Invalid byte sequences emit `DL4502`; unsupported byte/declaration encodings emit `DL4503`;
+and a supported XML declaration incompatible with the decoded bytes emits `DL4308`. These cases
+produce no WCF evidence from the affected artifact and no replacement-character or platform-code-
+page fallback is attempted. XML DTD/resolver controls still apply after successful decoding.
 
 ### Current filesystem controls
 
@@ -252,10 +265,19 @@ for privacy and capacity policy in Product V1.
   the complete graph and verifies its canonical hash before serializing the existing result
   envelope. The trusted Host independently repeats strict graph/hash/snapshot and semantic-result
   validation and still treats Worker output as untrusted.
+- Repository-controlled WCF text that reaches graph or diagnostic fields is persisted in at most
+  1,024 UTF-16 code units. Oversized values use a bounded surrogate-safe prefix, an explicit
+  `domainlens:truncated=true` marker, `originalLengthUtf16`, and `sha256Utf16` over the exact
+  big-endian UTF-16 code-unit sequence. Matching occurs against the full manifest-bounded value
+  before projection. Unpaired UTF-16 source constants and input containing the reserved marker use
+  the same digest-backed representation, with unsafe code units rendered as ASCII `\uXXXX`, so
+  JSON serialization cannot silently substitute text; `DL4504` exposes every abbreviation and
+  makes the result `PartialSuccess`.
 
 These are integrity and consistency controls, not authentication. The artifact
 is not digitally signed; the validator does not reopen a repository, prove
-that evidence is semantically true, or establish who produced the file.
+that evidence is semantically true, establish who produced the file, or provide general secret
+redaction/data-loss prevention.
 
 ### Current security-focused tests
 
@@ -293,9 +315,19 @@ The current security-focused suites include checks that:
   and still accept a valid manifest source;
 - fake repository-defined WCF look-alike attributes are not promoted to trusted WCF identities,
   while fully qualified, suffix, and alias forms bind only through the tool-owned catalog;
+- net472/v4.7.2 source can retain exact local observations, while .NET Framework 4.6.1, 4.8,
+  unknown, multiple, and conditional project profiles produce `DL4001` and no exact source
+  observation; unrelated declarative evidence retains its own quality;
 - malformed WCF XML, DTD/XXE payloads, external configuration, remote-looking WSDL/schema values,
   malicious-looking endpoint/type strings, and unsupported custom extensions remain inert and
   produce bounded evidence or typed diagnostics; and
+- strict UTF-8/BOM-marked UTF-16 positive cases retain decoded UTF-16 spans, while invalid UTF-8,
+  unsupported encodings, and incompatible XML declarations produce typed diagnostics and no WCF
+  evidence from the affected artifact; and
+- oversized source, `.svc`, configuration, custom-extension, diagnostic, and unresolved-target
+  text remains within the persistence bound, carries marker/length/digest metadata, does not merge
+  distinct full values with a common prefix, produces `DL4504`/`PartialSuccess`, and stays
+  deterministic and graph-valid; and
 - deep unsupported behavior metadata reaches a deterministic traversal diagnostic without
   recursion, while XDT controls suppress section promotion and non-XDT namespace metadata is
   diagnosed without hiding otherwise supported unqualified declarations; and
@@ -514,7 +546,7 @@ DECISIONS.
 | Evidence identity/hash/graph validation | Implemented in core | Evidence Kernel and coordinator |
 | Child-process crash/deadline/cancellation/result gate | **PROVEN for M0 test topology**; deadline governs worker/result acceptance, not independent trusted-postprocessing preemption; same OS identity | Worker host/platform and coordinator |
 | Exact-catalog net472 `SemanticModel` enrichment | **FEASIBLE WITH CONSTRAINTS**; bounded exact-length/hash-verified source reads, flattened manifest-source compilation, `Partial` resolution, no repository build/evaluation | Analyzer profile, Evidence Kernel and worker |
-| Classic WCF source/`.svc`/configuration safety | Bounded M2 rules implemented in the child Worker; manifest-verified reads, hardened XML, capped iterative metadata traversal, diagnostic-only XDT handling, inert extension/factory metadata, no activation or endpoint contact | Analyzer profile, Evidence Kernel and worker |
+| Classic WCF source/`.svc`/configuration safety | Bounded M2 rules implemented in the child Worker; source `Exact` gated to one deterministic net472/v4.7.2 project; manifest-verified reads; strict UTF decoding; hardened XML; 1,024-code-unit persisted-text representation; capped iterative metadata traversal; diagnostic-only XDT handling; inert extension/factory metadata; no activation or endpoint contact | Analyzer profile, Evidence Kernel and worker |
 | Environment minimization | Named-secret non-inheritance and job-scoped temp paths proven; not identity isolation | Worker host/platform |
 | Public URL and SSRF validation | Not applicable | Repository intake |
 | Git acquisition safety | Not implemented | Repository intake and worker bootstrap |
@@ -560,9 +592,11 @@ action could not occur.
    timeouts, concurrency, and request/session/principal/ownership-scope or tenant rate limits as applicable.
 5. **Safe semantic analysis:** M0 proves exact-catalog net472 symbol binding for one flattened
    manifest-source compilation with declared `Partial` resolution and without repository MSBuild
-   evaluation. M2 reuses that context and projects only its bounded WCF observations. Project-
-   faithful configuration, additional reference profiles, conditional compilation, non-WCF
-   projection, broader coverage accounting, and any need beyond this narrow mechanism remain open.
+   evaluation. M2 reuses that context and projects only its bounded WCF observations; it permits
+   `Exact` source quality only for one deterministic net472/v4.7.2 project and emits `DL4001`
+   otherwise. Project-faithful configuration, additional reference profiles, conditional
+   compilation, non-WCF projection, broader coverage accounting, and any need beyond this narrow
+   mechanism remain open.
    Repository build/restore and repository-controlled MSBuild evaluation do not
    become options.
 6. **Source egress:** allowed model providers, regions, retention/training

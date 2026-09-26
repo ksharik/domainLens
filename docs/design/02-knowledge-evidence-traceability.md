@@ -18,6 +18,14 @@ bounded deterministic WCF evidence through the isolated Worker path, but it also
 general method behavior or produce semantic findings. The remaining deterministic capabilities
 named below are **PLANNED V1 requirements or identified gaps**, not current behavior.
 
+Within the current WCF slice, trusted framework metadata identity is separate from the quality of
+an observation about repository source. Source-backed semantic evidence can be `Exact` only for
+exactly one deterministically selected `net472`/`v4.7.2` project context; `DL4001` and `Partial` or
+weaker quality apply otherwise. Independent declarative `.svc`/configuration evidence is not
+profile-downgraded. Strict text decoding and a collision-resistant 1,024-UTF-16-code-unit
+persistence representation also keep invalid or oversized repository-controlled values from being
+silently accepted as complete evidence.
+
 Milestone 0 separately proves that every manifest-listed C# source can be flattened into one
 synthetic Roslyn compilation and queried with `SemanticModel` against the exact tool-owned net472
 reference catalog without evaluating, restoring, building, or emitting the repository. The result
@@ -85,6 +93,12 @@ user-facing presentation until a versioned calibration method, an applicable exp
 corpus, a completed calibration evaluation, and an approved product decision to expose it exist.
 Raw model self-confidence must never be presented as product Confidence.
 
+For M2, `Exact` tool-owned net472 attribute/type identity does not automatically create an `Exact`
+source observation. The source must also have one deterministic compatible project context, and
+source-to-source relationships remain `Partial`. Same-document declarative relationships can be
+`Exact` under their own rules without asserting that configuration is deployed or that its related
+C# project is net472-compatible.
+
 References below to a Milestone 3 documented home mean that the approved broader Milestone 3 scope
 now names the relevant evidence family. They do not imply that its artifact, extraction,
 resolution, coverage, or acceptance contracts have been defined, and they do not request another
@@ -108,6 +122,15 @@ gaps. Building or restoring analyzed input is **PROHIBITED**. The current WCF Ev
 projection retains manifest provenance, resolution quality, diagnostics, and the trusted
 reference-profile boundary rather than presenting a compiler guess as complete evidence. Any
 later non-WCF projection must preserve the same rule.
+
+M2 also compares full manifest-bounded WCF literals before persistence, then stores at most 1,024
+UTF-16 code units. An oversized representation includes `domainlens:truncated=true`,
+`originalLengthUtf16`, and `sha256Utf16` over the exact big-endian UTF-16 code-unit sequence and
+emits `DL4504`; it is evidence of an abbreviated value, not the full source text. `.svc` and
+configuration parsing accepts only strict UTF-8 with/without BOM and BOM-marked UTF-16 LE/BE.
+Invalid or unsupported bytes and incompatible XML declarations yield typed diagnostics and no WCF
+evidence from that artifact. These controls do not turn diagnostics, hashes, or coverage state into
+semantic findings.
 
 ### Human-provided domain context
 
@@ -182,7 +205,7 @@ Inferred. A model must retain competing meanings instead of forcing a single glo
 | Knowledge output | Minimum evidence needed | Deterministic source/analyzer or stage | Semantic reasoning stage | Horizon and sufficiency |
 |---|---|---|---|---|
 | Application Service | Entry-point orchestration; calls to domain/persistence/integration services; transaction demarcation; mapping; lack or presence of domain rules | WCF analyzer (M2); call, behavior, persistence, transaction, and side-effect extraction | Domain discovery / DDD interpretation → Recovered (`Inferred`) | **V1 — evidence gap.** `*Service` and WCF implementation names do not distinguish application from domain services. |
-| APIs / Operations | Service/interface declaration; `ServiceContract`, `OperationContract`, `FaultContract`; implementation link; signature; endpoint/binding/hosting configuration; accessibility | WCF source/config/hosting analyzer (M2), with structural provenance from M1 | Exact declarations remain Observed in the Evidence Graph; domain purpose and use-case relation are Recovered (`Inferred`) | **Current — M2 slice.** Bounded implementation/config correlation and explicit partial/ambiguous/unresolved cases are implemented; effective runtime state, inaccessible/generated code, and business purpose remain gaps. |
+| APIs / Operations | Service/interface declaration; `ServiceContract`, `OperationContract`, `FaultContract`; implementation link; signature; endpoint/binding/hosting configuration; accessibility | WCF source/config/hosting analyzer (M2), with structural provenance from M1 | Deterministic declarations remain Observed in the Evidence Graph at their qualified resolution quality; domain purpose and use-case relation are Recovered (`Inferred`) | **Current — M2 slice.** Source observations are `Exact` only for one deterministic `net472`/`v4.7.2` project; independent declarative evidence follows its own rule. Bounded implementation/config correlation and explicit partial/ambiguous/unresolved cases are implemented; effective runtime state, inaccessible/generated code, and business purpose remain gaps. |
 | DTOs / Contracts | `DataContract`, `DataMember`, `MessageContract`, message headers/body, serialization attributes, types, versions, operation usage | WCF contract and serialization analyzer (M2); structural/type evidence (M1) | Contract role and domain meaning → Recovered (`Inferred`) | **Current — M2 slice.** The allowlisted declarations and supported operation-usage links are current; generated/external schemas, runtime serializers, and domain meaning remain partial/open. |
 | Messages / Integration Events | Message shape; producer/consumer; transport/configuration; send/receive site; correlation; delivery, ordering, retry and transaction behavior where visible | WCF message evidence (M2); messaging/call/config/transaction extraction (M3 documented home; detailed extraction and acceptance contracts remain open) | Domain discovery → Recovered (`Inferred`); classification as a Domain Event requires separate support | **V1 — evidence gap; open artifact dependency.** Message contracts alone do not establish business event semantics. |
 | External Systems | Endpoint addresses/types without exposing secrets; client/proxy/channel creation; outbound calls; assembly/service dependencies; request/response or message relationships | WCF clients, `ChannelFactory<T>`, `ClientBase<T>`, endpoint/config and call extraction; dependency analyzer | Domain discovery → Recovered (`Inferred`) | **Current — partial M2 path plus evidence gap.** Direct factories/proxies and configured endpoints are observed. XDT controls within `system.serviceModel` are detected without applying them or promoting that section; outbound invocation behavior, dynamic endpoints, absent generated proxies, effective environment selection, transform application, and third-party assemblies remain unavailable or planned. |

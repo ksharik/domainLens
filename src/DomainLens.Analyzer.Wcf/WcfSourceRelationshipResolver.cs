@@ -140,7 +140,6 @@ internal static class WcfSourceRelationshipResolver
         string ambiguousDiagnosticCode,
         string description)
     {
-        textualTarget = Bound(textualTarget);
         var declarationEvidence = builder.GetContributionEvidence(declarationEvidenceId);
         var quality = candidates.Count switch
         {
@@ -190,7 +189,4 @@ internal static class WcfSourceRelationshipResolver
                 ["target"] = textualTarget,
             });
     }
-
-    private static string Bound(string value) =>
-        value.Length <= 512 ? value : value[..512];
 }

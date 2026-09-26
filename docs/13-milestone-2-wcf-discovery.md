@@ -141,24 +141,34 @@ target configuration, conditional items, preprocessor symbols, generated output,
 package types. Consequently:
 
 - the identity of an allowlisted framework symbol resolved against the exact trusted catalog may
-  be `Exact` within that catalog;
+  be `Exact` as tool-owned metadata identity within that catalog, but that does not by itself make
+  an observation about repository source `Exact`;
+- a source-backed WCF semantic observation may be `Exact` only when that physical source is
+  associated with exactly one deterministically selected project whose single literal target is
+  `net472` or `v4.7.2`;
 - a relationship between repository source symbols produced by the flattened compilation is
   `Partial`, even when Roslyn returns one candidate;
-- an observation from a source that cannot be uniquely associated with a net472-compatible
-  project remains `Partial` and produces a framework-profile diagnostic where applicable;
+- an observation from a source with an unsupported, unknown, multiple, conditional, or otherwise
+  nondeterministic project profile remains `Partial` (or weaker when another rule requires it) and
+  produces `DL4001`;
 - a source declared only for another or unknown framework profile is not silently treated as
-  semantically equivalent to net472; and
+  semantically equivalent to net472;
+- independent `.svc` and `system.serviceModel` declarative observations keep the quality assigned
+  by their declarative rules; they are not downgraded solely because a C# framework profile is
+  unavailable or unsupported; and
 - missing or unsupported symbols remain explicit diagnostics or unresolved observations. They do
   not trigger restore, build, repository-binary loading, or reference acquisition.
 
 The implemented compatibility check runs for each project-specific source node or programmatic
 site retained as supported WCF semantic evidence, including contracts, data/message contracts,
 implementations, `ClientBase<T>` declarations, `ServiceHost` sites, and `ChannelFactory<T>` sites.
-It accepts exactly one selected-project target value equal to `net472` or `v4.7.2` (ordinal
-case-insensitive). Multi-target, conditional, property-expanded, absent, or other framework
-declarations produce `DL4001`. Extraction still uses the pinned net472 synthetic compilation: the
-diagnostic prevents that result from being presented as proof of compatibility with the declared
-framework, and makes the graph `PartialSuccess`; it does not acquire another reference profile.
+It permits `Exact` source-observation quality only for exactly one deterministically selected
+project target value equal to `net472` or `v4.7.2` (ordinal case-insensitive). Multi-target,
+conditional, property-expanded, absent, unknown, or other framework declarations produce
+`DL4001`, and the centralized policy constrains an otherwise `Exact` source observation to
+`Partial`. Extraction still uses the pinned net472 synthetic compilation: the diagnostic prevents
+that result from being presented as proof of compatibility with the declared framework, and makes
+the graph `PartialSuccess`; it does not acquire another reference profile.
 Sources not correlated to a selected project cannot establish profile compatibility. A flattened
 symbol that maps to multiple project-specific structural nodes is handled separately as
 structural ambiguity;
@@ -190,6 +200,30 @@ A repository-defined look-alike attribute is not WCF evidence, including one nam
 `ServiceContractAttribute` or `OperationContractAttribute`. When syntax resembles a WCF attribute
 but framework identity is missing or ambiguous, the analyzer emits the applicable diagnostic and
 does not upgrade the declaration to an exact WCF construct.
+
+## Text-encoding contract
+
+Manifest verification establishes the bytes; it does not authorize lossy decoding. Milestone 2
+uses one strict decoder policy for `.svc` and `.config` artifacts:
+
+- UTF-8 without a BOM;
+- UTF-8 with its BOM;
+- UTF-16 little-endian with its BOM; and
+- UTF-16 big-endian with its BOM.
+
+Each decoder rejects invalid byte sequences. There is no replacement-character fallback,
+locale-dependent default, arbitrary code-page detection, or best-effort guessing. BOM-marked
+UTF-32, BOM-less UTF-16/UTF-32 signatures, and non-UTF legacy code pages are unsupported. Invalid
+input produces `DL4502`; a recognized but unsupported encoding produces `DL4503`. Either outcome
+prevents `.svc` or configuration parsing and emits no WCF evidence from that artifact while making
+the analysis `PartialSuccess`.
+
+For configuration XML, a present XML encoding declaration must agree with the strict byte decoder.
+An unsupported declaration produces `DL4503`; a supported but incompatible declaration produces
+`DL4308`. In both cases the document contributes no WCF evidence. DTD processing remains
+prohibited and `XmlResolver` remains null. Source-span offsets, lengths, lines, and columns refer
+to the successfully decoded .NET string and therefore use UTF-16 code units; the manifest hash
+continues to cover the original bytes.
 
 ## Source-construct coverage
 
@@ -265,7 +299,7 @@ The allowlist is deliberately declarative:
 
 | Configuration construct | Treatment | Captured declarations |
 |---|---|---|
-| `system.serviceModel` section | **V1 Partial** | The section selects the bounded WCF configuration analysis scope. Version `0.1.0` does not create a standalone node or evidence record merely for section presence; it records supported child declarations and limitations. It is not an effective deployed configuration model. |
+| `system.serviceModel` section | **V1 Partial** | The section selects the bounded WCF configuration analysis scope. Version `0.1.1` does not create a standalone node or evidence record merely for section presence; it records supported child declarations and limitations. It is not an effective deployed configuration model. |
 | `services/service` | **V1 Partial** | Service `name`, `behaviorConfiguration`, contained supported endpoints, and an exact lexical service-to-endpoint containment edge within the captured document. |
 | `client/endpoint` | **V1 Partial** | Client direction plus endpoint `name`, `address`, `contract`, `binding`, `bindingConfiguration`, and `behaviorConfiguration`. |
 | Service `endpoint` | **V1 Partial** | Service direction plus endpoint `name`, `address`, `contract`, `binding`, `bindingConfiguration`, and `behaviorConfiguration`. |
@@ -310,7 +344,7 @@ Resolution follows these rules:
 | One same-document binding or behavior declaration with the requested supported name | Resolved `ToNodeId`; `DeclarativeConfiguration` / `Exact` for the declaration-to-declaration link within that captured document. An endpoint that names only a binding family resolves to an explicit unnamed/default declaration of that family when one exists; absence of such a declaration remains unresolved rather than assuming runtime defaults. This does not claim that the file is the effective deployed configuration. |
 | One supported source candidate for a `.svc`, configured service, endpoint contract, activation, `ChannelFactory<T>`, or `ClientBase<T>` relationship | Resolved `ToNodeId`; normally `Partial` because project selection, effective configuration, and runtime activation are not reproduced. |
 | More than one supported candidate | `ToNodeId = null`, stable `UnresolvedTarget`, `Ambiguous`, and a typed diagnostic. Candidate count and stable candidate identities may be retained in diagnostic/resolution details. |
-| No supported candidate | `ToNodeId = null`, the stable literal or compiler display identity in `UnresolvedTarget`, `Unresolved`, and a typed diagnostic where the missing link affects supported coverage. Declarative `.svc`/configuration targets passed through the source-correlation resolver are capped at 512 characters; compiler display identities and same-file configuration targets remain bounded by accepted inputs rather than a separate per-value cap. |
+| No supported candidate | `ToNodeId = null`, the stable literal or compiler display identity in `UnresolvedTarget`, `Unresolved`, and a typed diagnostic where the missing link affects supported coverage. Resolution uses the complete manifest-bounded target; persistence then applies the centralized 1,024-UTF-16-code-unit bounded representation. |
 
 Names are compared using the documented ordinal rules for the corresponding CLR or configuration
 identifier. Fuzzy, suffix, filename, namespace-fragment, or case-folded guessing is prohibited.
@@ -403,7 +437,7 @@ The analyzer owns these stable relationship kinds:
 
 `WcfClientContract` is the emitted contract relationship for both `ChannelFactory<T>` sites and
 `ClientBase<T>` source classes. Although `WcfChannelFactoryContract` and `WcfClientBaseContract`
-constants are reserved in the vocabulary catalog, version `0.1.0` does not emit either kind.
+constants are reserved in the vocabulary catalog, version `0.1.1` does not emit either kind.
 Parameter and return roles that share a usage edge kind remain distinguishable through their rule
 IDs. Header, body, and data members use the three dedicated member edge kinds above. An unresolved
 or ambiguous edge always has `ToNodeId = null` and a stable `UnresolvedTarget`.
@@ -426,14 +460,43 @@ WCF property names use a centralized `wcf.` namespace, including these families:
 Identifier strings live in one analyzer-owned catalog. Raw strings must not be scattered across
 extractors. The core remains language and framework neutral and does not enumerate WCF kinds.
 
+### Persisted repository-controlled text
+
+Milestone 2 applies one deterministic persistence policy to repository-controlled WCF text before
+it enters node names/qualified names/properties, edge unresolved targets/details, evidence
+resolution details, or diagnostic messages/properties. The maximum persisted representation is
+1,024 UTF-16 code units. Values within that limit are unchanged. An oversized value is represented
+by a surrogate-safe bounded prefix followed by an explicit `domainlens:truncated=true` marker, its
+original UTF-16 length, and the lowercase SHA-256 digest of the complete value's exact big-endian
+UTF-16 code-unit sequence. Hashing code units rather than a lossy text re-encoding keeps even
+unpaired-surrogate compiler constants distinct. The marker and metadata are inside the
+1,024-code-unit limit, so the stored text cannot be mistaken for a complete literal.
+
+The same representation is also used when a C# constant contains an unpaired UTF-16 surrogate or
+the repository value contains the reserved truncation marker. Unpaired code units are rendered as
+ASCII `\uXXXX` text before the bounded prefix is selected, and the metadata records
+`invalidUtf16=true`; reserved-marker inputs record `reservedMarkerEscaped=true`. In both cases the
+digest still covers the exact original UTF-16 code-unit sequence, the value cannot impersonate an
+analyzer-generated representation, JSON round trips remain lossless, and `DL4504` makes the
+transformation explicit.
+
+Matching, candidate selection, ambiguity detection, and other analyzer decisions use the complete
+manifest-bounded value before this persistence projection. The full-value digest makes persisted
+representations collision-resistant for identity and comparison purposes: two oversized values
+with the same retained prefix but different suffixes remain distinct. The analyzer never persists
+the omitted suffix elsewhere as a diagnostic excerpt. Every abbreviation emits `DL4504`, records
+the field, configured limit, original length, digest, and truncation state using bounded values,
+and changes the contribution to `PartialSuccess`. The corresponding stable rule is
+`wcf.safety.persisted-text-abbreviation`.
+
 ## Extractor and rule versioning
 
 Milestone 2 uses:
 
 - `ExtractorId`: `domainlens.classic-wcf`
-- `ExtractorVersion`: `0.1.0`
+- `ExtractorVersion`: `0.1.1`
 
-The minimum stable rule catalog is:
+The stable catalog contains 41 rules:
 
 | Rule ID | Observation |
 |---|---|
@@ -477,6 +540,7 @@ The minimum stable rule catalog is:
 | `wcf.config.endpoint-behavior` | Endpoint-to-behavior relationship. |
 | `wcf.config.service-behavior` | Service-to-behavior relationship. |
 | `wcf.config.activation-link` | Activation-to-source relationship. |
+| `wcf.safety.persisted-text-abbreviation` | Oversized repository-controlled WCF text represented by a bounded prefix, original length, SHA-256 digest, and explicit truncation marker. |
 
 Changing the meaning, recognized grammar, identity recipe, or emitted fields of a rule requires an
 extractor/rule version change and regression review. Reordering implementation code does not.
@@ -497,7 +561,7 @@ Span rules are:
 - C# declaration and relationship evidence uses the exact Roslyn syntax span that establishes the
   claim;
 - WCF attribute metadata uses the complete applied `AttributeSyntax` span; individual named
-  arguments do not receive separate evidence records in version `0.1.0`;
+  arguments do not receive separate evidence records in version `0.1.1`;
 - object-creation evidence uses the complete `ServiceHost` or `ChannelFactory<T>` object-creation
   expression; related type, endpoint-name, and address properties share that evidence;
 - XML declaration evidence uses the complete opening-tag span for the configured service,
@@ -535,7 +599,7 @@ Milestone 2 preserves the existing language-neutral basis vocabulary:
 - `Composite` when a claim requires more than one of these bases; and
 - `Unknown` only when no more precise basis is genuinely available.
 
-Version `0.1.0` emits `Semantic` for C# attribute, symbol-relationship, and recognized
+Version `0.1.1` emits `Semantic` for C# attribute, symbol-relationship, and recognized
 object-creation evidence; `DeclarativeConfiguration` for `.svc` and XML declarations plus
 same-document configuration links; and `Composite` for declarative `.svc`/configuration strings
 correlated to source symbols. It does not currently emit WCF evidence with `Manifest`, `Syntax`,
@@ -546,14 +610,17 @@ Quality is assigned conservatively:
 
 | Quality | Milestone 2 rule |
 |---|---|
-| `Exact` | The supported rule established the observation within its declared scope, such as trusted framework attribute identity or a unique same-document named configuration declaration. It does not mean behaviorally or operationally complete. |
+| `Exact` | The supported rule established the observation within its declared scope. Tool-owned framework metadata identity may be exact independently. A repository-source semantic observation additionally requires exactly one deterministically selected `net472`/`v4.7.2` project context. Unique same-document named configuration declarations can be exact under their declarative rules. `Exact` does not mean behaviorally or operationally complete. |
 | `Partial` | The observation is useful but project selection, target profile, effective configuration, runtime selection, external types, or synthetic-compilation scope is incomplete. Unique source-to-source semantic and config-to-source links normally fall here. |
 | `Ambiguous` | More than one supported target remains possible. No candidate is selected by ordering or naming preference. |
 | `Unresolved` | The declaration or relationship was observed but no supported target could be established. The stable textual target is retained. |
 
-`Exact` framework identity does not upgrade a source-to-source relationship to `Exact`. Likewise,
-an exact configuration string does not prove that the captured file is selected at runtime.
-Resolution Quality is not Confidence, semantic Support, Coverage, or Completeness.
+`Exact` framework identity does not upgrade either an unsupported/unknown-profile source
+observation or a source-to-source relationship to `Exact`. The profile constraint applies only to
+C# semantic observations; it does not downgrade `.svc` or XML declarations whose evidence is
+independently declarative. Likewise, an exact configuration string does not prove that the
+captured file is selected at runtime. Resolution Quality is not Confidence, semantic Support,
+Coverage, or Completeness.
 
 When one physical declaration's flattened compiler symbol maps to multiple project-specific
 structural nodes, the analyzer retains every candidate node and does not select a project by
@@ -575,11 +642,13 @@ has multiple project-specific targets, each edge is `Semantic` / `Ambiguous`, ha
 `ToNodeId = null`, and retains the contract CLR identity as `UnresolvedTarget`; `DL4102` records that
 implementation-method projection was not attempted across the ambiguous project mapping.
 
-An `Exact` WCF declaration says that the bounded rule recognized that declaration in the captured
-artifact. A direct `ServiceHost` or `ChannelFactory<T>` construction can therefore have `Exact`
-semantic creation evidence while its edge to a selected repository type is `Partial`. A binding or
-behavior link can be `Exact` only inside the same captured configuration file. Config-to-source and
-`.svc`-to-source links use `Composite` / `Partial` for a unique candidate, `Composite` /
+An `Exact` source WCF declaration says that the bounded rule recognized that declaration in the
+captured artifact and that the centralized profile policy established exactly one compatible
+`net472`/`v4.7.2` project context. A direct `ServiceHost` or `ChannelFactory<T>` construction can
+have `Exact` semantic creation evidence only under that same profile condition, while its edge to
+a selected repository type remains `Partial`. A binding or behavior link can be `Exact` inside the
+same captured configuration file without depending on a source framework profile. Config-to-source
+and `.svc`-to-source links use `Composite` / `Partial` for a unique candidate, `Composite` /
 `Ambiguous` for multiple candidates, and `Composite` / `Unresolved` for none.
 
 ## Deterministic graph composition
@@ -605,7 +674,7 @@ open generalized cross-analyzer conflict, precedence, migration, or plug-in-cont
 
 ## Diagnostics and partial-coverage policy
 
-The analyzer owns a stable diagnostic family. The minimum codes are:
+The analyzer owns a stable family of 27 diagnostic codes:
 
 | Code | Condition |
 |---|---|
@@ -630,16 +699,20 @@ The analyzer owns a stable diagnostic family. The minimum codes are:
 | `DL4305` | A custom WCF extension registration declaration was detected and retained only as inert metadata. Unsupported custom behavior/extension use outside that registration grammar receives `DL4303`. |
 | `DL4306` | The 4,096-element namespace/XDT preflight or 256-element unsupported-behavior traversal limit was reached; remaining metadata was not interpreted. |
 | `DL4307` | XDT control metadata was retained as inert evidence, the transform was not applied, and declarations from that `system.serviceModel` section were not promoted. |
+| `DL4308` | A supported XML encoding declaration is incompatible with the encoding established from the captured byte stream; the configuration document is not analyzed. |
 | `DL4401` | A recognized WCF attribute has unsupported source placement—including an operation/fault outside a uniquely selected service/callback operation surface—an otherwise supported source declaration such as `ClientBase<T>` maps ambiguously to project nodes, or a dynamic, reflective, wrapper, factory, or interprocedural WCF source pattern is outside the bounded rule set. |
 | `DL4501` | A manifest-listed `.svc` or `.config` file failed path, length, hash, presence, or bounded-read validation. |
+| `DL4502` | A manifest-verified `.svc` or `.config` byte stream is invalid under its selected strict UTF decoder; the artifact is not parsed. |
+| `DL4503` | A byte encoding, BOM-less Unicode form, or XML encoding declaration is outside the supported UTF encoding set; the artifact is not parsed. |
+| `DL4504` | Repository-controlled WCF text exceeded the 1,024-UTF-16-code-unit persistence limit and was represented by its bounded prefix, explicit marker, original length, and full-value digest. |
 
 Diagnostics tied to one captured artifact include a repository-relative path and may include stable
 properties such as an element, attribute, target text, candidate count, or offset. A small number
 of relationship diagnostics are bound through evidence IDs without duplicating a path. Diagnostic
-messages do not include absolute workspace paths. Declarative `.svc`/configuration targets passed
-through the source-correlation resolver are capped before persistence; compiler display identities
-and configuration literals otherwise remain constrained by accepted-input bounds and must continue
-to be treated as untrusted inert data.
+messages do not include absolute workspace paths. The centralized persistence policy bounds every
+repository-controlled diagnostic excerpt/property as well as graph fields and unresolved targets.
+It never places the omitted suffix or full oversized literal in the `DL4504` message. Resolution
+still uses the complete manifest-bounded value before persistence.
 
 Analysis status follows the implemented composition policy:
 
@@ -667,6 +740,14 @@ external-reference traversal; only the bounded traversal-limit evidence and `DL4
 emitted for that section. `DL4306` from an unsupported-behavior traversal stops only that local
 walk; the supported parent behavior can still be retained. Neither condition turns otherwise
 trustworthy repository evidence into `Failure`.
+
+`DL4502`, `DL4503`, and `DL4308` prevent the affected text artifact from contributing WCF evidence;
+other manifest artifacts may still be analyzed, so the repository result is `PartialSuccess` rather
+than `Failure`. `DL4504` preserves already established evidence through the bounded representation
+and also makes the result `PartialSuccess`. `DL4001` similarly retains source evidence at
+`Partial` or weaker quality while preventing an unsupported or indeterminate project profile from
+being presented as exact net472-compatible source evidence. None of these diagnostics downgrades
+unrelated declarative observations.
 
 Where a denominator is deterministically enumerable, the analyzer may report counts of candidates,
 handled constructs, degraded constructs, unsupported constructs, and resolution outcomes. It does
@@ -700,6 +781,15 @@ cancellation until the current file parse or bounded traversal completes; the wo
 remains the hard stop. The analyzer must not reopen an arbitrary path supplied by an Evidence Graph
 or configuration value.
 
+Manifest-verified `.svc` and `.config` bytes pass through the strict encoding contract before any
+parser sees text. Invalid or unsupported bytes and incompatible XML declarations contribute only
+bounded typed diagnostics, never partially decoded evidence. Repository-controlled strings that
+do reach the graph or diagnostics pass through the 1,024-UTF-16-code-unit persistence policy; the
+full value remains available only for the current bounded in-memory match, and oversized values
+are represented with the explicit marker, original length, and SHA-256 of the exact big-endian
+UTF-16 code-unit sequence. These are evidence-integrity and bounded-output controls, not secret
+redaction or a general data-loss-prevention subsystem.
+
 The existing M0 claims do not change: process separation is proven for the tested topology, while
 least-privileged OS identity, filesystem confinement, kernel resource limits, detached-descendant
 containment, and OS-enforced network denial are **NOT PROVEN**. A test demonstrating that no WCF
@@ -720,6 +810,8 @@ configuration, Milestone 2 must produce:
 - identical evidence, node, logical-node, and edge IDs;
 - stable node, edge, evidence, property, attribute, and diagnostic ordering;
 - identical resolution outcomes; and
+- identical bounded-text prefixes, original lengths, full-value digests, truncation diagnostics,
+  and encoding diagnostics; and
 - no absolute machine path, timestamp, process ID, random value, or operational job ID in canonical
   graph content or identities.
 
@@ -745,6 +837,9 @@ Purpose-built fixtures should remain small and focused. The acceptance suite inc
 | Shared source/project ambiguity | One WCF-attributed contract and one unattributed implementation class selected by two projects remain represented by both structural nodes; contract operations remain unpromoted with `DL4401`; each implementation candidate retains an ambiguous `WcfImplementsContract` edge and `DL4102`; endpoint and `.svc` correlations are `Ambiguous`; and no project context is guessed. Additional regression cases cover ambiguous callback, fault-detail, data-contract, `ServiceHost`, `ChannelFactory<T>`, and `ClientBase<T>` targets. Independent declarations sharing one CLR identity prove that WCF attributes and `ClientBase<T>` base syntax enrich only the path/span partition that contains them, while operation/member projection remains conservative. |
 | Hostile configuration | DTD/XXE rejection, malformed XML, external configuration declaration, custom extension type, malicious-looking type/address strings, and no side effect or fetch. |
 | Configuration hardening | Iterative 256-element unsupported-behavior traversal limit, inert XDT detection with declaration suppression, and non-XDT namespace metadata diagnostics without hiding supported unqualified declarations. The 4,096-element namespace/XDT preflight proves that an incomplete scan stops before external-reference reporting and declaration promotion, leaving only bounded `DL4306` evidence for that section. |
+| Framework-profile quality | A single deterministic `net472`/`v4.7.2` project may retain `Exact` source observations; .NET Framework 4.6.1, 4.8, unknown, multiple, and conditional targets emit `DL4001` and cannot produce `Exact` source evidence. Source-to-source relationships remain `Partial`, while independent declarative evidence is not profile-downgraded. |
+| Persisted-text bounds | Oversized source attribute values, `.svc` service/factory literals, endpoint addresses, configuration contract/name values, custom extension types, unresolved targets, resolution details, and diagnostic fields fit the 1,024-code-unit representation; expose marker/length/digest metadata; emit `DL4504`; produce `PartialSuccess`; remain graph-valid and deterministic; and keep different full values with a shared prefix distinct. |
+| Text encodings | Strict UTF-8 with and without BOM and BOM-marked UTF-16 LE/BE are accepted for `.svc`/configuration; invalid UTF-8, unsupported BOM-less legacy/Unicode forms, and incompatible or unsupported XML declarations emit `DL4502`, `DL4503`, or `DL4308`, produce no evidence from that artifact, and remain deterministic. |
 
 Source-attribute tests cover fully qualified names, omitted and explicit `Attribute` suffixes, using
 aliases, repository-defined look-alikes, unavailable semantic types, unsupported attribute
@@ -782,6 +877,10 @@ custom WCF extension and repository-build marker assertions, DTD/XXE rejection, 
 external-config non-resolution, and a checked-in remote-import WSDL that remains outside the WCF
 analyzer's selected `.cs`/`.config`/`.svc` inputs. Existing scanner limits bound accepted file
 size. Tests do not modify a global firewall or claim OS-enforced egress denial.
+
+The remediation validation target comprises 59 tests in `DomainLens.Analyzer.Wcf.Tests` and 159
+tests across `DomainLens.sln`. These are the current source-tree suite counts; completion still
+requires the clean-checkout commands and Windows CI gate in the acceptance checklist.
 
 ## Negative semantic boundary
 
@@ -843,6 +942,9 @@ Even after Milestone 2 acceptance:
 
 - compiler relationships remain constrained by the flattened repository-wide synthetic
   compilation and net472-only trusted catalog;
+- source evidence from .NET Framework versions other than the one trusted net472 profile, or from
+  unknown/multiple/conditional project contexts, cannot be `Exact`; declarative evidence remains
+  separately qualified and does not establish source compatibility;
 - project-faithful configuration, conditional compilation, generated output, repository package
   types, and third-party implementations remain unavailable;
 - WCF source patterns using reflection, dependency injection, wrapper factories, custom hosts,
@@ -860,6 +962,11 @@ Even after Milestone 2 acceptance:
 - synchronous per-file XML and `.svc` parsing is bounded by accepted input size and traversal caps
   but is not independently preemptible; cancellation may be observed after the current parse while
   the worker-host deadline remains the hard stop;
+- `.svc` and configuration text support is limited to strict UTF-8 (with or without BOM) and
+  BOM-marked UTF-16 LE/BE; other encodings are diagnosed and not parsed;
+- persisted repository-controlled WCF text is an intentionally abbreviated representation after
+  1,024 UTF-16 code units; the marker, original length, and digest establish that abbreviation and
+  preserve distinction, but do not preserve the omitted suffix for display;
 - local WSDL/XSD semantics and remote imports remain open/unsupported;
 - generated-proxy origin is detection-only and absent generated sources are unavailable;
 - service, contract, binding, behavior, address, and activation declarations do not prove runtime
@@ -893,18 +1000,20 @@ Milestone 2 is complete only when:
 1. a concrete Classic WCF analyzer exists inside the worker dependency boundary;
 2. every implemented WCF fact is in the canonical Evidence Graph rather than an auxiliary graph;
 3. existing Milestone 1 evidence and identities remain intact;
-4. supported framework attributes are recognized by trusted semantic identity and look-alikes are
-   rejected;
+4. supported framework attributes are recognized by trusted semantic identity, look-alikes are
+   rejected, and `Exact` source quality requires one deterministic `net472`/`v4.7.2` project;
 5. source contracts, operations, faults, data/message contracts, and their supported relationships
    pass fixture tests;
 6. implementation and explicit-interface relationships use conservative source resolution;
-7. `.svc` and allowlisted configuration parsing are inert, bounded, hardened, and span-backed;
+7. `.svc` and allowlisted configuration parsing are inert, strictly decoded, bounded, hardened,
+   and span-backed;
 8. configured services, endpoints, bindings, behaviors, activations, and relationship outcomes are
    deterministic;
 9. bounded `ServiceHost`, `ChannelFactory<T>`, and `ClientBase<T>` rules pass positive and negative
    tests;
-10. unsupported, malformed, unavailable, ambiguous, and unresolved cases produce stable typed
-    diagnostics and appropriate `PartialSuccess` behavior;
+10. unsupported, malformed, unavailable, ambiguous, unresolved, invalid/unsupported encoding, and
+    oversized persisted-text cases produce stable typed diagnostics and appropriate
+    `PartialSuccess` behavior;
 11. every source-backed observation has valid manifest provenance and a tested source span;
 12. canonical repeatability, identity recomputation, graph validation, and hash verification pass;
 13. all M0/M1 protocol, staging, semantic-read, hostile-repository, process, result-gate, scanner,

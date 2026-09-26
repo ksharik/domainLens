@@ -206,8 +206,8 @@ content hash always covers original file bytes, not normalized text.
 Current extractors identify themselves as
 `domainlens.repository-structure@0.1.0` and
 `domainlens.csharp-syntax@0.1.0`. Milestone 2 adds
-`domainlens.classic-wcf@0.1.0` with rule IDs under the `wcf.source.*`, `wcf.svc.*`, and
-`wcf.config.*` namespaces. The version identifies extraction behavior;
+`domainlens.classic-wcf@0.1.1` with 41 rule IDs under the `wcf.source.*`, `wcf.svc.*`,
+`wcf.config.*`, and `wcf.safety.*` namespaces. The version identifies extraction behavior;
 the rule ID identifies the particular observation, such as a project
 declaration, source membership, type declaration, method parameter type, WCF contract declaration,
 or configured endpoint relationship.
@@ -347,9 +347,17 @@ Milestone 2 adds the following bounded WCF relationship kinds:
   `WcfEndpointBehavior`, `WcfServiceBehavior`, and `WcfServiceActivationImplementation`.
 
 For an ambiguous or unresolved target, `ToNodeId` remains `null` and `UnresolvedTarget` retains the
-bounded stable textual target. An exact framework attribute identity does not upgrade a
-source-to-source, configuration-to-source, or runtime-selection relationship beyond the quality
-supported by its own rule.
+centralized bounded representation of the stable textual target. Resolution and candidate matching
+use the full manifest-bounded value first. If persistence would exceed 1,024 UTF-16 code units, the
+stored representation carries a bounded prefix, `domainlens:truncated=true`,
+`originalLengthUtf16`, and `sha256Utf16` over the exact big-endian UTF-16 code-unit sequence. Thus
+two full targets with the same prefix cannot collapse into one logical identity. Values containing
+an unpaired UTF-16 surrogate or the reserved marker use the same explicit representation, escape
+unsafe code units as ASCII `\uXXXX`, and record why projection was required so JSON round trips do
+not mutate graph fields or identities. An exact framework
+attribute identity does not upgrade an unsupported/indeterminate-profile source observation, a
+source-to-source relationship, a configuration-to-source relationship, or a runtime-selection
+relationship beyond the quality supported by its own rule.
 
 ### Diagnostics and analysis status
 
@@ -364,10 +372,11 @@ converted diagnostics currently use paths, line/column properties, and
 coverage as described in [Analysis Pipeline](04-analysis-pipeline.md). They are
 not Finding Graph acceptance states.
 
-Milestone 2 diagnostics use stable `DL4xxx` codes for framework-profile mismatch, unresolved
+Milestone 2 diagnostics use 27 stable `DL4xxx` codes for framework-profile mismatch, unresolved
 attribute identity/value, source/configuration relationship degradation, malformed or unsupported
 `.svc` and XML forms, external configuration, inert custom extensions, unsupported source patterns,
-and manifest-read failure. `DL4401` also covers trusted `OperationContract`/`FaultContract`
+strict text-encoding/declaration failure, persisted-text abbreviation, and manifest-read failure.
+`DL4401` also covers trusted `OperationContract`/`FaultContract`
 attributes outside the selected contract/operation surface; their source-backed evidence remains
 `Partial` and the structural node is not promoted. Configuration-specific hardening adds
 `wcf.config.traversal-limit`/`DL4306` for a capped walk and
@@ -513,6 +522,15 @@ inputs. The reusable manifest reader applies the same containment, exact-length,
 read, cancellation, and reparse checks to captured `.cs`, `.svc`, and `.config` bytes selected from
 the accepted manifest.
 
+The WCF projection applies a centralized framework-profile policy after trusted symbol identity is
+known. Tool-owned metadata identity can be `Exact` within the catalog, but repository-source WCF
+evidence can be `Exact` only when the physical source belongs to exactly one deterministically
+selected project with the single literal target `net472` or `v4.7.2`. Unsupported, unknown,
+multiple, conditional, or otherwise indeterminate targets emit `DL4001`, constrain otherwise exact
+source evidence to `Partial`, and produce `PartialSuccess`. Source-to-source relationships remain
+`Partial`. Declarative `.svc` and XML observations do not depend on this C# profile gate and retain
+the quality established by their own rules.
+
 The child worker returns semantic JSON and its SHA-256 digest alongside the
 Evidence Graph envelope. **PROVEN:** the trusted host requires both artifacts,
 checks both envelope hashes, strict-deserializes them, applies
@@ -555,6 +573,23 @@ Milestone 2 adds a small language-neutral `EvidenceGraphContribution` and
 This is sufficient for the concrete built-in WCF analyzer. It does not settle generalized analyzer
 registration, kind governance, contribution compatibility, cross-analyzer precedence, migration,
 or plug-in loading.
+
+Before `.svc` or configuration bytes reach their parser, M2 selects only strict UTF-8 (with or
+without BOM) or BOM-marked UTF-16 LE/BE. Invalid decoder input (`DL4502`), unsupported byte/
+declaration encodings (`DL4503`), and supported-but-incompatible XML declarations (`DL4308`) yield
+no WCF evidence from the affected artifact and make the contribution `PartialSuccess`; no fallback
+or code-page guessing occurs. DTD prohibition and the null XML resolver remain independent gates.
+Evidence spans use UTF-16 offsets in the successfully decoded string while the manifest hash stays
+bound to original bytes.
+
+The composition boundary also centralizes persistence of repository-controlled WCF strings across
+node fields/properties, edge unresolved targets/details, evidence resolution details, and
+diagnostic messages/properties. Full values are used for matching before projection. A value over
+1,024 UTF-16 code units is stored as a bounded, surrogate-safe prefix plus an explicit marker,
+original code-unit length, and SHA-256 digest over the exact big-endian UTF-16 code-unit sequence.
+The digest is part of the bounded representation used by identities, so common prefixes do not
+merge different full values. `wcf.safety.persisted-text-abbreviation`/`DL4504` records the
+abbreviation without reproducing the omitted suffix and makes the contribution `PartialSuccess`.
 
 ## PLANNED — Finding Graph traceability
 

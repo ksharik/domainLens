@@ -97,7 +97,26 @@ internal sealed class WcfConfigurationAnalyzer(ManifestVerifiedFileReader fileRe
                 continue;
             }
 
-            var source = WcfTextDocument.Decode(read.Content);
+            var decode = WcfTextDocument.TryDecode(read.Content);
+            if (!decode.IsSuccess)
+            {
+                builder.AddDiagnostic(
+                    decode.Status == WcfTextDecodeStatus.Invalid
+                        ? WcfVocabulary.Diagnostics.InvalidTextEncoding
+                        : WcfVocabulary.Diagnostics.UnsupportedTextEncoding,
+                    DiagnosticSeverity.Warning,
+                    decode.Status == WcfTextDecodeStatus.Invalid
+                        ? "The configuration file contains an invalid byte sequence for the selected supported encoding and was not parsed."
+                        : "The configuration file uses an unsupported text encoding and was not parsed.",
+                    entry.Path,
+                    properties: new SortedDictionary<string, string>(StringComparer.Ordinal)
+                    {
+                        ["detectedEncoding"] = decode.EncodingLabel,
+                    });
+                continue;
+            }
+
+            var source = decode.Document!;
             if (!source.Text.Contains("system.serviceModel", StringComparison.Ordinal))
             {
                 // An unrelated .config file is outside this analyzer's scope. Avoid turning its
@@ -135,6 +154,27 @@ internal sealed class WcfConfigurationAnalyzer(ManifestVerifiedFileReader fileRe
                         ? "The WCF configuration contains a prohibited DTD and was not parsed."
                         : $"The WCF configuration XML is malformed and was not parsed: {Sanitize(exception.Message)}",
                     entry.Path);
+                continue;
+            }
+
+            var declarationEncoding = document.Declaration?.Encoding;
+            var declarationStatus = source.ValidateXmlEncodingDeclaration(declarationEncoding);
+            if (declarationStatus != WcfXmlEncodingDeclarationStatus.Compatible)
+            {
+                builder.AddDiagnostic(
+                    declarationStatus == WcfXmlEncodingDeclarationStatus.Unsupported
+                        ? WcfVocabulary.Diagnostics.UnsupportedTextEncoding
+                        : WcfVocabulary.Diagnostics.IncompatibleXmlEncodingDeclaration,
+                    DiagnosticSeverity.Warning,
+                    declarationStatus == WcfXmlEncodingDeclarationStatus.Unsupported
+                        ? "The configuration XML declares an unsupported text encoding and was not interpreted."
+                        : "The configuration XML encoding declaration is incompatible with the decoded byte encoding and was not interpreted.",
+                    entry.Path,
+                    properties: new SortedDictionary<string, string>(StringComparer.Ordinal)
+                    {
+                        ["actualEncoding"] = decode.EncodingLabel,
+                        ["declaredEncoding"] = declarationEncoding!.Trim(),
+                    });
                 continue;
             }
 
